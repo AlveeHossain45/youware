@@ -8,11 +8,11 @@ import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import apiClient from '../../api/axios'; // Import apiClient
+import apiClient from '../../api/axios'; // apiClient ইম্পোর্ট করা হয়েছে
 
 const Profile = () => {
   const { isDark, currentTheme } = useTheme();
-  const { user, updateUserContext } = useAuth(); // Get updateUserContext from AuthContext
+  const { user, updateUserContext } = useAuth(); // updateUserContext যোগ করা হয়েছে
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -42,16 +42,32 @@ const Profile = () => {
     }
 
     try {
-      const response = await apiClient.put(`/users/${user.id}`, profileData);
-      updateUserContext(response.data); // Update context immediately
+      // শুধুমাত্র যে ডেটাগুলো পরিবর্তন হতে পারে, সেগুলো পাঠানো হচ্ছে
+      const dataToUpdate = {
+        name: profileData.name,
+        email: profileData.email,
+        phone: profileData.phone,
+        address: profileData.address,
+        bio: profileData.bio,
+        education: profileData.education,
+        experience: profileData.experience,
+        avatar: profileData.avatar,
+      };
+
+      const response = await apiClient.put(`/users/${user.id}`, dataToUpdate);
+      
+      updateUserContext(response.data); // AuthContext আপডেট করা হচ্ছে
+      
       setSaveStatus({ message: 'Profile updated successfully!', type: 'success' });
       setTimeout(() => {
         setSaveStatus({ message: '', type: 'idle' });
         setIsEditing(false);
       }, 2000);
+
     } catch (error) {
       console.error('Error updating profile:', error);
-      setSaveStatus({ message: 'Error updating profile', type: 'error' });
+      const errorMessage = error.response?.data?.message || 'Error updating profile';
+      setSaveStatus({ message: errorMessage, type: 'error' });
       setTimeout(() => setSaveStatus({ message: '', type: 'idle' }), 3000);
     }
   };
@@ -76,8 +92,8 @@ const Profile = () => {
       setSaveStatus({ message: 'Please select an image file', type: 'error' });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      setSaveStatus({ message: 'Image size must be less than 5MB', type: 'error' });
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      setSaveStatus({ message: 'Image size must be less than 10MB', type: 'error' });
       return;
     }
 
@@ -87,7 +103,7 @@ const Profile = () => {
       setProfileData(prev => ({ ...prev, avatar: reader.result }));
       setUploading(false);
       setShowAvatarModal(false);
-      setSaveStatus({ message: 'Avatar updated. Click "Save Changes".', type: 'info' });
+      setSaveStatus({ message: 'Avatar ready. Click "Save Changes".', type: 'info' });
     };
     reader.readAsDataURL(file);
   };
@@ -102,7 +118,6 @@ const Profile = () => {
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <main className={`pt-20 transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'lg:ml-0'}`}>
         <div className="p-6 lg:p-8">
-          {/* Header & Save Status */}
           <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Profile</h1>
             <div className="flex items-center gap-3 mt-4 lg:mt-0">
@@ -134,7 +149,6 @@ const Profile = () => {
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column: Profile Card */}
             <div className={`p-6 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg self-start`}>
                 <div className="relative mx-auto w-32 h-32 group">
                     <img src={profileData.avatar} alt={profileData.name} className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-700 shadow-lg"/>
@@ -150,10 +164,8 @@ const Profile = () => {
                 </div>
             </div>
 
-            {/* Right Column: Details Form */}
             <div className={`lg:col-span-2 p-6 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg`}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Form fields */}
                     <InputField label="Full Name" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} disabled={!isEditing} icon={User} />
                     <InputField label="Email Address" value={profileData.email} onChange={e => setProfileData({...profileData, email: e.target.value})} disabled={!isEditing} icon={Mail} />
                     <InputField label="Phone" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} disabled={!isEditing} icon={Phone} placeholder="Not set" />
@@ -177,7 +189,6 @@ const Profile = () => {
         </div>
       </main>
 
-      {/* Avatar Modal */}
       <AnimatePresence>
         {showAvatarModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -185,7 +196,7 @@ const Profile = () => {
               <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold">Update Profile Picture</h3><button onClick={() => setShowAvatarModal(false)}><X/></button></div>
               <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} accept="image/*" className="hidden"/>
               <button onClick={triggerFileInput} disabled={uploading} className="w-full flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl hover:bg-gray-500/10 transition-colors">
-                {uploading ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div> : <><Upload size={48} className="text-gray-400 mb-4"/> <p>Click to upload or drag & drop</p><p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 5MB</p></>}
+                {uploading ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div> : <><Upload size={48} className="text-gray-400 mb-4"/> <p>Click to upload or drag & drop</p><p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p></>}
               </button>
             </motion.div>
           </motion.div>

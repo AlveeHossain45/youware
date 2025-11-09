@@ -57,8 +57,10 @@ app.use(cors(corsOptions));
 app.use(helmet());
 
 // 3. Enable JSON body parsing for incoming requests
-app.use(express.json());
-app.set('trust proxy', 1); 
+// 3. Enable JSON body parsing with increased limit for image uploads
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.set('trust proxy', 1);
 
 // 4. Rate limiting to prevent brute-force and DDoS attacks
 const limiter = rateLimit({
