@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Search, Bell, Settings, LogOut, Menu, X, Sun, Moon, User, ChevronDown
-} from 'lucide-react';
+  Search, Settings, LogOut, Menu, X, Sun, Moon, User
+} from 'lucide-react'; // Bell এবং ChevronDown আইকন সরানো হয়েছে
 import Logo from './Logo';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 
+// useOnClickOutside hook টি অপরিবর্তিত থাকবে
 function useOnClickOutside(ref, handler) {
   useEffect(() => {
     const listener = (event) => {
@@ -25,33 +26,12 @@ function useOnClickOutside(ref, handler) {
 
 const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const { user } = useAuth();
-  const { isDark, toggleDarkMode, currentTheme, setTheme, themes } = useTheme();
+  const { isDark, toggleDarkMode } = useTheme(); // অপ্রয়োজনীয় থিম ভেরিয়েবল সরানো হয়েছে
   const [searchQuery, setSearchQuery] = useState('');
   const [openMenu, setOpenMenu] = useState(null);
 
-  const themeMenuRef = useRef(null);
-  const notificationsMenuRef = useRef(null);
   const profileMenuRef = useRef(null);
-
-  useOnClickOutside(themeMenuRef, () => openMenu === 'theme' && setOpenMenu(null));
-  useOnClickOutside(notificationsMenuRef, () => openMenu === 'notifications' && setOpenMenu(null));
   useOnClickOutside(profileMenuRef, () => openMenu === 'profile' && setOpenMenu(null));
-
-  const toggleMenu = (menuName) => {
-    setOpenMenu(prev => (prev === menuName ? null : menuName));
-  };
-
-  const menuVariants = {
-    hidden: { opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.1 } },
-    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.2 } },
-    exit: { opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.1 } }
-  };
-
-  const notifications = [
-    { id: 1, title: 'New exam scheduled', time: '2 hours ago', read: false },
-    { id: 2, title: 'Attendance marked', time: '5 hours ago', read: false },
-    { id: 3, title: 'Fee reminder', time: '1 day ago', read: true }
-  ];
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 ${isDark ? 'glass-card-dark' : 'glass-card-light'} border-b`}>
@@ -82,14 +62,8 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
               {isDark ? <Sun className="w-5 h-5 text-gray-300" /> : <Moon className="w-5 h-5 text-gray-600" />}
             </button>
             
-            {/* Notifications Button */}
-            <div className="relative" ref={notificationsMenuRef}>
-              <button onClick={() => toggleMenu('notifications')} className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-200/50'} transition-colors relative`}>
-                <Bell className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
-                {notifications.filter(n => !n.read).length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />}
-              </button>
-            </div>
-
+            {/* Notifications Button - এই অংশটি সম্পূর্ণ মুছে ফেলা হয়েছে */}
+            
             {/* Profile Link */}
             <Link to={`/${user?.role}/profile`} className={`flex items-center gap-2 px-2 py-1 rounded-full ${isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-200/50'} transition-colors`}>
               <img src={user?.avatar} alt={user?.name} className="w-8 h-8 rounded-full" />
