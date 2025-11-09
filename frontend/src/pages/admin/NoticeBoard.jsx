@@ -1,3 +1,5 @@
+// src/pages/admin/NoticeBoard.jsx
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -277,7 +279,7 @@ const NoticeBoard = () => {
                                 placeholder="Search notices..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full pl-12 pr-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-white border border-gray-200'}`}
                             />
                         </div>
                         
@@ -285,7 +287,7 @@ const NoticeBoard = () => {
                             <select
                                 value={filterCategory}
                                 onChange={(e) => setFilterCategory(e.target.value)}
-                                className="px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className={`px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-white border border-gray-200'}`}
                             >
                                 <option value="All">All Categories</option>
                                 <option value="General">General</option>
@@ -296,7 +298,7 @@ const NoticeBoard = () => {
                             <select
                                 value={filterPriority}
                                 onChange={(e) => setFilterPriority(e.target.value)}
-                                className="px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className={`px-4 py-3 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-white border border-gray-200'}`}
                             >
                                 <option value="All">All Priority</option>
                                 <option value="High">High</option>
@@ -310,9 +312,9 @@ const NoticeBoard = () => {
                     <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
                         {/* Notices List */}
                         <div className="xl:col-span-1">
-                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 h-[70vh] overflow-y-auto">
+                            <div className={`rounded-3xl shadow-sm border p-6 h-[70vh] overflow-y-auto ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-white border-gray-100'}`}>
                                 <div className="flex items-center justify-between mb-6">
-                                    <h3 className="font-bold text-gray-900">
+                                    <h3 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                         Notices ({notices.length})
                                     </h3>
                                     <Filter className="w-5 h-5 text-gray-400" />
@@ -326,8 +328,8 @@ const NoticeBoard = () => {
                                             onClick={() => setSelectedNotice(notice)}
                                             className={`p-4 rounded-2xl cursor-pointer transition-all border-2 ${
                                                 selectedNotice?.id === notice.id 
-                                                    ? 'border-blue-500 bg-blue-50 shadow-md' 
-                                                    : 'border-transparent bg-gray-50 hover:bg-gray-100'
+                                                    ? `border-blue-500 shadow-md ${isDark ? 'bg-blue-900/20' : 'bg-blue-50'}` 
+                                                    : `border-transparent ${isDark ? 'bg-gray-800 hover:bg-gray-700/50' : 'bg-gray-50 hover:bg-gray-100'}`
                                             } ${notice.isPinned ? 'ring-2 ring-yellow-400/30' : ''}`}
                                         >
                                             <div className="flex items-start justify-between mb-2">
@@ -335,7 +337,7 @@ const NoticeBoard = () => {
                                                     {notice.isPinned && (
                                                         <Pin className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                                                     )}
-                                                    <h4 className="font-semibold text-gray-900 text-sm line-clamp-1">
+                                                    <h4 className={`font-semibold text-sm line-clamp-1 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
                                                         {notice.title}
                                                     </h4>
                                                 </div>
@@ -371,7 +373,7 @@ const NoticeBoard = () => {
                         {/* Notice Detail */}
                         <div className="xl:col-span-3">
                             {selectedNotice ? (
-                                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                                <div className={`rounded-3xl shadow-sm border p-8 ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-white border-gray-100'}`}>
                                     {/* Header */}
                                     <div className="flex items-start justify-between mb-6">
                                         <div className="flex-1">
@@ -380,19 +382,19 @@ const NoticeBoard = () => {
                                                     {getCategoryIcon(selectedNotice.category)}
                                                     {selectedNotice.category}
                                                 </span>
-                                                <span className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-gray-100 text-gray-600">
+                                                <span className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
                                                     {getAudienceIcon(selectedNotice.audience)}
                                                     {selectedNotice.audience}
                                                 </span>
                                                 {selectedNotice.isPinned && (
-                                                    <span className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-yellow-50 text-yellow-600">
+                                                    <span className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-yellow-500/10 text-yellow-500">
                                                         <Pin className="w-4 h-4 fill-yellow-500" />
                                                         Pinned
                                                     </span>
                                                 )}
                                             </div>
                                             
-                                            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                                            <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-3`}>
                                                 {selectedNotice.title}
                                             </h2>
                                             
@@ -426,8 +428,8 @@ const NoticeBoard = () => {
                                                     onClick={() => handlePinNotice(selectedNotice.id)}
                                                     className={`p-2 rounded-xl transition-colors ${
                                                         selectedNotice.isPinned
-                                                            ? 'bg-yellow-50 text-yellow-600'
-                                                            : 'hover:bg-gray-100 text-gray-600'
+                                                            ? 'bg-yellow-500/10 text-yellow-500'
+                                                            : isDark ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
                                                     }`}
                                                 >
                                                     <Pin className={`w-5 h-5 ${selectedNotice.isPinned ? 'fill-yellow-500' : ''}`} />
@@ -436,7 +438,7 @@ const NoticeBoard = () => {
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleOpenModal(selectedNotice)}
-                                                    className="p-2 rounded-xl hover:bg-gray-100 text-gray-600 transition-colors"
+                                                    className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'}`}
                                                 >
                                                     <Edit3 className="w-5 h-5" />
                                                 </motion.button>
@@ -444,7 +446,7 @@ const NoticeBoard = () => {
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
                                                     onClick={() => handleDelete(selectedNotice.id)}
-                                                    className="p-2 rounded-xl hover:bg-red-50 text-red-600 transition-colors"
+                                                    className="p-2 rounded-xl hover:bg-red-500/10 text-red-600 transition-colors"
                                                 >
                                                     <Trash2 className="w-5 h-5" />
                                                 </motion.button>
@@ -453,16 +455,16 @@ const NoticeBoard = () => {
                                     </div>
 
                                     {/* Content */}
-                                    <div className="prose prose-lg max-w-none">
-                                        <div className="text-gray-700 leading-relaxed whitespace-pre-line">
+                                    <div className="prose prose-lg max-w-none mt-8">
+                                        <div className={`leading-relaxed whitespace-pre-line ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                                             {selectedNotice.content}
                                         </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-12 text-center">
+                                <div className={`rounded-3xl shadow-sm border p-12 text-center ${isDark ? 'bg-gray-900/50 border-gray-800' : 'bg-white border-gray-100'}`}>
                                     <ClipboardList className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">
+                                    <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
                                         Select a Notice
                                     </h3>
                                     <p className="text-gray-500">
@@ -490,132 +492,82 @@ const NoticeBoard = () => {
                             exit={{ scale: 0.9, opacity: 0 }}
                             className="w-full max-w-2xl"
                         >
-                            <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-2xl p-8">
+                            <form onSubmit={handleSubmit} className={`rounded-3xl shadow-2xl p-8 ${isDark ? 'bg-gray-900 border border-gray-700' : 'bg-white'}`}>
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-2xl font-bold text-gray-900">
+                                    <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                         {isEditing ? 'Edit Notice' : 'New Notice'}
                                     </h3>
                                     <button 
                                         type="button" 
                                         onClick={handleCloseModal}
-                                        className="p-2 hover:bg-gray-100 rounded-xl text-gray-500"
+                                        className={`p-2 rounded-xl ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} text-gray-500`}
                                     >
                                         <X className="w-6 h-6" />
                                     </button>
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Title
-                                        </label>
-                                        <input 
-                                            required 
-                                            value={formData.title} 
-                                            onChange={e => setFormData({...formData, title: e.target.value})} 
-                                            placeholder="Enter notice title"
-                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Content
-                                        </label>
-                                        <textarea 
-                                            required 
-                                            value={formData.content} 
-                                            onChange={e => setFormData({...formData, content: e.target.value})} 
-                                            placeholder="Enter notice content..."
-                                            rows="5"
-                                            className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                                        />
-                                    </div>
-
+                                    <input 
+                                        required 
+                                        value={formData.title} 
+                                        onChange={e => setFormData({...formData, title: e.target.value})} 
+                                        placeholder="Enter notice title"
+                                        className={`w-full p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200'}`}
+                                    />
+                                    <textarea 
+                                        required 
+                                        value={formData.content} 
+                                        onChange={e => setFormData({...formData, content: e.target.value})} 
+                                        placeholder="Enter notice content..."
+                                        rows="5"
+                                        className={`w-full p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${isDark ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200'}`}
+                                    />
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Category
-                                            </label>
-                                            <select 
-                                                value={formData.category} 
-                                                onChange={e => setFormData({...formData, category: e.target.value})} 
-                                                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="General">General</option>
-                                                <option value="Exam">Exam</option>
-                                                <option value="Event">Event</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Priority
-                                            </label>
-                                            <select 
-                                                value={formData.priority} 
-                                                onChange={e => setFormData({...formData, priority: e.target.value})} 
-                                                className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="Low">Low</option>
-                                                <option value="Medium">Medium</option>
-                                                <option value="High">High</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Audience
-                                            </label>
-                                            <select 
-                                                value={formData.audience} 
-                                                onChange={e => setFormData({...formData, audience: e.target.value})} 
-                                                disabled={user.role === 'teacher'}
-                                                className={`w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                                    user.role === 'teacher' ? 'opacity-70' : ''
-                                                }`}
-                                            >
-                                                {user.role === 'admin' && (
-                                                    <>
-                                                        <option value="Everyone">Everyone</option>
-                                                        <option value="Teachers">Teachers</option>
-                                                    </>
-                                                )}
-                                                <option value="Students">Students</option>
-                                            </select>
-                                        </div>
+                                        <select 
+                                            value={formData.category} 
+                                            onChange={e => setFormData({...formData, category: e.target.value})} 
+                                            className={`w-full p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200'}`}
+                                        >
+                                            <option>General</option>
+                                            <option>Exam</option>
+                                            <option>Event</option>
+                                        </select>
+                                        <select 
+                                            value={formData.priority} 
+                                            onChange={e => setFormData({...formData, priority: e.target.value})} 
+                                            className={`w-full p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200'}`}
+                                        >
+                                            <option>Low</option>
+                                            <option>Medium</option>
+                                            <option>High</option>
+                                        </select>
+                                        <select 
+                                            value={formData.audience} 
+                                            onChange={e => setFormData({...formData, audience: e.target.value})} 
+                                            disabled={user.role === 'teacher'}
+                                            className={`w-full p-4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200'} ${user.role === 'teacher' ? 'opacity-70' : ''}`}
+                                        >
+                                            {user.role === 'admin' && (<><option>Everyone</option><option>Teachers</option></>)}
+                                            <option>Students</option>
+                                        </select>
                                     </div>
-
-                                    {canManageNotices && (
-                                        <div className="flex items-center gap-3">
-                                            <input
-                                                type="checkbox"
-                                                id="isPinned"
-                                                checked={formData.isPinned}
-                                                onChange={e => setFormData({...formData, isPinned: e.target.checked})}
-                                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                                            />
-                                            <label htmlFor="isPinned" className="text-sm font-medium text-gray-700">
-                                                Pin this notice
-                                            </label>
-                                        </div>
-                                    )}
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id="isPinned"
+                                            checked={formData.isPinned}
+                                            onChange={e => setFormData({...formData, isPinned: e.target.checked})}
+                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                        />
+                                        <label htmlFor="isPinned" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                                            Pin this notice
+                                        </label>
+                                    </div>
                                 </div>
 
                                 <div className="flex gap-4 mt-8">
-                                    <button 
-                                        type="button" 
-                                        onClick={handleCloseModal}
-                                        className="flex-1 py-4 bg-gray-100 text-gray-700 rounded-2xl font-semibold hover:bg-gray-200 transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        type="submit"
-                                        className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold hover:shadow-lg transition-all"
-                                    >
-                                        {isEditing ? 'Update' : 'Publish'}
-                                    </button>
+                                    <button type="button" onClick={handleCloseModal} className={`flex-1 py-4 rounded-2xl font-semibold transition-colors ${isDark ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>Cancel</button>
+                                    <button type="submit" className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold hover:shadow-lg transition-all">{isEditing ? 'Update' : 'Publish'}</button>
                                 </div>
                             </form>
                         </motion.div>

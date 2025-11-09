@@ -5,9 +5,12 @@ import { motion } from 'framer-motion';
 import { Search, Plus, Edit3, Trash2, X, AlertCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import apiClient from '../api/axios';
+import Navbar from './Navbar';
+import Sidebar from './Sidebar';
 
 const ManageUsers = ({ role, title, description }) => {
     const { isDark, currentTheme } = useTheme();
+    const [sidebarOpen, setSidebarOpen] = useState(true);
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -103,8 +106,10 @@ const ManageUsers = ({ role, title, description }) => {
     };
 
     return (
-        <div className={`min-h-screen ${isDark ? 'dark-bg' : 'light-bg'}`}>
-            <main className="pt-8">
+        <div className={`min-h-screen ${isDark ? currentTheme.dark.bg : 'light-bg'}`}>
+            <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+            <main className={`pt-20 transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'lg:ml-0'}`}>
                 <div className="p-6 lg:p-8">
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
                         <div className="flex items-center justify-between">
