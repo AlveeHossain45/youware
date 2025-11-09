@@ -1,0 +1,93 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* Global Styles */
+@layer base {
+  * {
+    @apply border-gray-200 dark:border-gray-700/50;
+  }
+  
+  body {
+    @apply bg-slate-50 text-gray-800 dark:bg-gray-900 dark:text-gray-200;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Reusable Components Layer */
+@layer components {
+  /* Main background for light mode */
+  .light-bg {
+    @apply bg-slate-50;
+  }
+  
+  /* Aurora Background for Dark Mode */
+  .dark-bg {
+    @apply bg-gray-900 relative overflow-hidden;
+  }
+  .aurora-container {
+    @apply absolute inset-0 z-0 opacity-20;
+    filter: blur(100px);
+  }
+  .aurora-shape1 {
+    @apply absolute top-0 left-0 w-96 h-96 rounded-full;
+    animation: pulse-aurora 15s infinite ease-in-out;
+  }
+  .aurora-shape2 {
+    @apply absolute bottom-0 right-0 w-96 h-96 rounded-full;
+    animation: pulse-aurora 20s infinite ease-in-out reverse;
+  }
+  .aurora-shape3 {
+    @apply absolute top-1/2 left-1/2 w-80 h-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500;
+    animation: pulse-aurora 25s infinite ease-in-out;
+  }
+
+  /* Glassmorphism Cards */
+  .glass-card-light {
+    @apply bg-white/70 backdrop-blur-xl border border-white/30 rounded-2xl shadow-lg;
+  }
+  .glass-card-dark {
+    @apply bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/20;
+  }
+
+  /* Input Fields */
+  .input-glass {
+    @apply w-full px-4 py-3 rounded-xl border bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 transition-all duration-200;
+  }
+  .input-glass-dark {
+    @apply w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm placeholder-gray-500 text-gray-200 focus:outline-none focus:ring-2 focus:border-white/20 transition-all duration-200;
+  }
+  
+  /* Sidebar Links */
+  .sidebar-link-active {
+    @apply text-white shadow-lg;
+  }
+}
+
+/* Keyframes */
+@keyframes pulse-aurora {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+  50% { transform: scale(1.5) rotate(45deg); opacity: 0.5; }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-600;
+}

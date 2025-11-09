@@ -1,0 +1,108 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Search, Bell, Settings, LogOut, Menu, X, Sun, Moon, User, ChevronDown
+} from 'lucide-react';
+import Logo from './Logo';
+import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
+
+function useOnClickOutside(ref, handler) {
+  useEffect(() => {
+    const listener = (event) => {
+      if (!ref.current || ref.current.contains(event.target)) return;
+      handler(event);
+    };
+    document.addEventListener("mousedown", listener);
+    document.addEventListener("touchstart", listener);
+    return () => {
+      document.removeEventListener("mousedown", listener);
+      document.removeEventListener("touchstart", listener);
+    };
+  }, [ref, handler]);
+}
+
+const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
+  const { user } = useAuth();
+  const { isDark, toggleDarkMode, currentTheme, setTheme, themes } = useTheme();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [openMenu, setOpenMenu] = useState(null);
+
+  const themeMenuRef = useRef(null);
+  const notificationsMenuRef = useRef(null);
+  const profileMenuRef = useRef(null);
+
+  useOnClickOutside(themeMenuRef, () => openMenu === 'theme' && setOpenMenu(null));
+  useOnClickOutside(notificationsMenuRef, () => openMenu === 'notifications' && setOpenMenu(null));
+  useOnClickOutside(profileMenuRef, () => openMenu === 'profile' && setOpenMenu(null));
+
+  const toggleMenu = (menuName) => {
+    setOpenMenu(prev => (prev === menuName ? null : menuName));
+  };
+
+  const menuVariants = {
+    hidden: { opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.1 } },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.2 } },
+    exit: { opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.1 } }
+  };
+
+  const notifications = [
+    { id: 1, title: 'New exam scheduled', time: '2 hours ago', read: false },
+    { id: 2, title: 'Attendance marked', time: '5 hours ago', read: false },
+    { id: 3, title: 'Fee reminder', time: '1 day ago', read: true }
+  ];
+
+  return (
+    <nav className={`fixed top-0 left-0 right-0 z-50 ${isDark ? 'glass-card-dark' : 'glass-card-light'} border-b`}>
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-200/50'} transition-colors`}
+            >
+              {sidebarOpen ? <X className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} /> : <Menu className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />}
+            </button>
+            <Link to={`/${user?.role}/dashboard`} className="flex items-center">
+              <Logo size="small" />
+            </Link>
+          </div>
+
+          <div className="hidden md:flex flex-1 max-w-lg mx-8">
+            <div className="relative w-full">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input type="text" placeholder="Search anything..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full pl-11 pr-4 py-2 rounded-xl ${isDark ? 'input-glass-dark focus:border-blue-500/50' : 'input-glass focus:border-blue-500/50'}`} />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Theme Toggle Button */}
+            <button onClick={toggleDarkMode} className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-200/50'} transition-colors`}>
+              {isDark ? <Sun className="w-5 h-5 text-gray-300" /> : <Moon className="w-5 h-5 text-gray-600" />}
+            </button>
+            
+            {/* Notifications Button */}
+            <div className="relative" ref={notificationsMenuRef}>
+              <button onClick={() => toggleMenu('notifications')} className={`p-2 rounded-lg ${isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-200/50'} transition-colors relative`}>
+                <Bell className={`w-5 h-5 ${isDark ? 'text-gray-300' : 'text-gray-600'}`} />
+                {notifications.filter(n => !n.read).length > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />}
+              </button>
+            </div>
+
+            {/* Profile Link */}
+            <Link to={`/${user?.role}/profile`} className={`flex items-center gap-2 px-2 py-1 rounded-full ${isDark ? 'hover:bg-gray-700/50' : 'hover:bg-gray-200/50'} transition-colors`}>
+              <img src={user?.avatar} alt={user?.name} className="w-8 h-8 rounded-full" />
+              <div className="hidden sm:block text-left">
+                <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>{user?.name}</p>
+                <span className={`text-xs capitalize px-2 py-0.5 rounded-full ${isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>{user?.role}</span>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
