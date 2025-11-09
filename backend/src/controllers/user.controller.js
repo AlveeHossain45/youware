@@ -99,20 +99,25 @@ const getUserById = asyncHandler(async (req, res) => {
 // @route   PUT /api/users/:id
 // @access  Private (Admin or User themselves)
 const updateUser = asyncHandler(async (req, res) => {
+    // Allow users to update their own profile, and admins to update any.
     if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
         res.status(403);
         throw new Error('Forbidden: You are not authorized to update this user');
     }
 
-    const { name, email, role, status } = req.body;
-    const dataToUpdate = { name, email, status };
+    const { name, email, role, status, avatar } = req.body; // <-- avatar added
+    const dataToUpdate = { name, email, status, avatar }; // <-- avatar added
     
+    // Only admins can change roles
     if (req.user.role === 'admin' && role) {
         const validRoles = ['admin', 'teacher', 'student', 'accountant', 'clerk', 'librarian', 'staff'];
         if (validRoles.includes(role)) {
             dataToUpdate.role = role;
         }
     }
+
+    // Filter out undefined values so we only update what's provided
+    Object.keys(dataToUpdate).forEach(key => dataToUpdate[key] === undefined && delete dataToUpdate[key]);
 
     const updatedUser = await prisma.user.update({
         where: { id: req.params.id },
@@ -122,6 +127,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
     res.json(updatedUser);
 });
+
 
 // @desc    Delete a user
 // @route   DELETE /api/users/:id

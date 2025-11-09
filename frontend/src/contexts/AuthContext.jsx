@@ -80,12 +80,21 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // --- UPDATE USER CONTEXT FUNCTION ---
+  const updateUserContext = (updatedData) => {
+    setUser(prevUser => ({
+      ...prevUser,
+      ...updatedData
+    }));
+  };
+
   const value = {
     user,
     login,
     register,
     logout,
     loading,
+    updateUserContext, // <-- Expose the new function
   };
 
   return (

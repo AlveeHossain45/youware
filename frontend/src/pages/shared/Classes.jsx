@@ -1,26 +1,18 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  GraduationCap,
-  Users,
-  Calendar,
-  Search,
-  Filter,
-  Plus,
-  Edit3,
-  Trash2,
-  Eye,
-  MapPin,
-  X
+  GraduationCap, Users, Calendar, Search, Filter, Plus, Edit3, Trash2, Eye, MapPin, X
 } from 'lucide-react';
+import Navbar from '../../components/Navbar';
+import Sidebar from '../../components/Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import apiClient from '../../api/axios';
+import apiClient from '../../api/axios'; // apiClient ইমপোর্ট করা হয়েছে
 
 const Classes = () => {
   const { isDark, currentTheme } = useTheme();
   const { user } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [filteredClasses, setFilteredClasses] = useState([]);
@@ -38,27 +30,29 @@ const Classes = () => {
     subject: '',
     teacherId: '',
     schedule: '',
-    room: '',
-    maxStudents: 30
+    room: ''
   });
 
+  // ডেটা লোড করার জন্য useEffect
   useEffect(() => {
     loadData();
   }, []);
 
+  // ফিল্টার করার জন্য useEffect
   useEffect(() => {
     filterClasses();
   }, [classes, searchTerm, subjectFilter]);
 
+  // ব্যাকএন্ড থেকে ডেটা লোড করার নতুন ফাংশন
   const loadData = async () => {
     setLoading(true);
     try {
+      // একসাথে ক্লাস এবং শিক্ষক উভয়ের ডেটা লোড করা হচ্ছে
       const [classesResponse, teachersResponse] = await Promise.all([
           apiClient.get('/classes'),
-          apiClient.get('/users?role=teacher') 
+          user?.role === 'admin' ? apiClient.get('/users?role=teacher') : Promise.resolve({ data: [] })
       ]);
       setClasses(classesResponse.data);
-      setFilteredClasses(classesResponse.data);
       setTeachers(teachersResponse.data);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -67,6 +61,52 @@ const Classes = () => {
     }
   };
 
+  const filterClasses = () => {
+    let filtered = classes;
+
+    if (subjectFilter !== 'all') {
+      filtered = filtered.filter(cls => cls.subject === subjectFilter);
+    }
+
+    if (searchTerm) {
+      filtered = filtered.filter(cls =>
+        (cls.name && cls.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (cls.subject && cls.subject.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (cls.teacherName && cls.teacherName.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    setFilteredClasses(filtered);
+  };
+
+  const handleOpenModal = (cls = null) => {
+    if (cls) {
+      setIsEditing(true);
+      setSelectedClass(cls);
+      setFormData({
+        name: cls.name,
+        description: cls.description,
+        subject: cls.subject,
+        teacherId: cls.teacherId,
+        schedule: cls.schedule,
+        room: cls.room
+      });
+    } else {
+      setIsEditing(false);
+      setSelectedClass(null);
+      setFormData({
+        name: '', description: '', subject: '', teacherId: '',
+        schedule: '', room: ''
+      });
+    }
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
+  
+  // নতুন ক্লাস তৈরি বা এডিট করার জন্য API কল
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -75,21 +115,24 @@ const Classes = () => {
       } else {
         await apiClient.post('/classes', formData);
       }
-      loadData();
+      await loadData(); // ডেটা রিলোড করা
       handleCloseModal();
     } catch (error) {
       console.error('Error saving class:', error);
+      alert('Failed to save class. Please check the console for errors.');
     }
   };
 
+  // ক্লাস ডিলিট করার জন্য API কল
   const handleDelete = async (classId) => {
     if (window.confirm('Are you sure you want to delete this class?')) {
-      try {
-        await apiClient.delete(`/classes/${classId}`);
-        loadData();
-      } catch (error) {
-        console.error('Error deleting class:', error);
-      }
+        try {
+          await apiClient.delete(`/classes/${classId}`);
+          await loadData(); // ডেটা রিলোড করা
+        } catch (error) {
+          console.error('Error deleting class:', error);
+          alert('Failed to delete class.');
+        }
     }
   };
   
@@ -106,74 +149,95 @@ const Classes = () => {
   const uniqueSubjects = [...new Set(classes.map(c => c.subject))];
 
   return (
-    <div className="p-6 lg:p-8">
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
-              All Classes
-            </h1>
-            <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-              Manage all system classes
-            </p>
-          </div>
-          
-          {user?.role === 'admin' && (
-            <motion.button onClick={() => handleOpenModal()} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className={`px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r ${currentTheme.primary} shadow-lg hover:shadow-xl flex items-center gap-2`}>
-              <Plus className="w-5 h-5" /> Add Class
-            </motion.button>
-          )}
-        </div>
-      </motion.div>
+    <div className={`min-h-screen ${isDark ? currentTheme.dark.bg : currentTheme.light.bg}`}>
+      <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      <main className={`pt-20 transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'lg:ml-0'}`}>
+        <div className="p-6 lg:p-8">
+          {/* Header */}
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
+                  {user?.role === 'admin' ? 'All Classes' : 'My Classes'}
+                </h1>
+                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Manage all system classes
+                </p>
+              </div>
+              
+              {user?.role === 'admin' && (
+                <motion.button onClick={() => handleOpenModal()} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className={`px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r ${currentTheme.primary} shadow-lg hover:shadow-xl flex items-center gap-2`}>
+                  <Plus className="w-5 h-5" /> Add Class
+                </motion.button>
+              )}
+            </div>
+          </motion.div>
 
-      <motion.div variants={itemVariants} initial="hidden" animate="visible" transition={{ delay: 0.1 }} className={`mb-6 p-4 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg`}>
-        <div className="flex flex-col gap-4 md:flex-row">
-          <div className="relative flex-1">
-            <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-            <input type="text" placeholder="Search classes, subjects, or teachers..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`w-full pl-10 pr-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />
-          </div>
-          
-          <div className="relative">
-            <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} className={`pl-10 pr-10 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'} appearance-none cursor-pointer`}>
-              <option value="all">All Subjects</option>
-              {uniqueSubjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
-            </select>
-            <Filter className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
-          </div>
-        </div>
-      </motion.div>
+          {/* Filters */}
+          <motion.div variants={itemVariants} initial="hidden" animate="visible" transition={{ delay: 0.1 }} className={`mb-6 p-4 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg`}>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1 relative">
+                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <input type="text" placeholder="Search classes..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`w-full pl-10 pr-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />
+              </div>
+              
+              <div className="relative">
+                <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} className={`pl-10 pr-10 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'} appearance-none cursor-pointer`}>
+                  <option value="all">All Subjects</option>
+                  {uniqueSubjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+                </select>
+                <Filter className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+              </div>
+            </div>
+          </motion.div>
 
-      <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredClasses.map((classItem, index) => (
-          <motion.div key={classItem.id} variants={itemVariants} custom={index} whileHover={{ y: -5, transition: { duration: 0.2 } }} className={`p-6 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg flex flex-col justify-between`}>
-            <div>
-                <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className={`p-3 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400`}><GraduationCap className="w-6 h-6" /></div>
-                        <div>
+          {/* Classes Grid */}
+          <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loading ? (
+              <div className="md:col-span-2 lg:col-span-3 text-center py-16">
+                <div className="w-8 h-8 mx-auto border-b-2 border-blue-500 rounded-full animate-spin"></div>
+              </div>
+            ) : filteredClasses.length > 0 ? (
+                filteredClasses.map((classItem, index) => (
+                  <motion.div key={classItem.id} variants={itemVariants} custom={index} whileHover={{ y: -5, transition: { duration: 0.2 } }} className={`p-6 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg flex flex-col`}>
+                    <div className="flex-grow">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-3 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400`}><GraduationCap className="w-6 h-6" /></div>
+                          <div>
                             <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{classItem.name}</h3>
                             <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{classItem.subject}</p>
+                          </div>
                         </div>
+                      </div>
+                      <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'} mb-4 line-clamp-2 min-h-[40px]`}>{classItem.description}</p>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2"><Users className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /><span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{classItem.studentCount} students</span></div>
+                        <div className="flex items-center gap-2"><Calendar className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /><span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{classItem.schedule}</span></div>
+                        <div className="flex items-center gap-2"><MapPin className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /><span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{classItem.room}</span></div>
+                      </div>
                     </div>
+                    {user?.role === 'admin' && (
+                      <div className="flex gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button onClick={() => alert(`Viewing details for ${classItem.name}`)} className={`flex-1 px-3 py-2 rounded-lg ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-100'} transition-colors`}><Eye className={`w-4 h-4 mx-auto ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /></button>
+                        <button onClick={() => handleOpenModal(classItem)} className={`flex-1 px-3 py-2 rounded-lg ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-100'} transition-colors`}><Edit3 className={`w-4 h-4 mx-auto ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /></button>
+                        <button onClick={() => handleDelete(classItem.id)} className={`flex-1 px-3 py-2 rounded-lg ${isDark ? 'hover:bg-red-900/20' : 'hover:bg-red-50'} transition-colors`}><Trash2 className="w-4 h-4 text-red-500 mx-auto" /></button>
+                      </div>
+                    )}
+                  </motion.div>
+                ))
+            ) : (
+                <div className="md:col-span-2 lg:col-span-3 text-center py-16">
+                    <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>No classes found.</p>
                 </div>
-                <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'} mb-4 line-clamp-2 min-h-[40px]`}>{classItem.description}</p>
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2"><Users className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /><span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{classItem.currentStudents} students</span></div>
-                    <div className="flex items-center gap-2"><Calendar className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /><span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{classItem.schedule}</span></div>
-                    <div className="flex items-center gap-2"><MapPin className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /><span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{classItem.room}</span></div>
-                </div>
-            </div>
-            {user?.role === 'admin' && (
-              <div className="flex gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-                <button onClick={() => alert(`Viewing details for ${classItem.name}`)} className={`flex-1 p-2 rounded-lg ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-100'} transition-colors`}><Eye className={`w-4 h-4 mx-auto ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /></button>
-                <button onClick={() => handleOpenModal(classItem)} className={`flex-1 p-2 rounded-lg ${isDark ? 'hover:bg-gray-700/30' : 'hover:bg-gray-100'} transition-colors`}><Edit3 className={`w-4 h-4 mx-auto ${isDark ? 'text-gray-400' : 'text-gray-600'}`} /></button>
-                <button onClick={() => handleDelete(classItem.id)} className={`flex-1 p-2 rounded-lg ${isDark ? 'hover:bg-red-900/20' : 'hover:bg-red-50'} transition-colors`}><Trash2 className="w-4 h-4 mx-auto text-red-500" /></button>
-              </div>
             )}
           </motion.div>
-        ))}
-      </motion.div>
+        </div>
+      </main>
 
+      {/* Add/Edit Modal */}
       {showModal && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <motion.form onSubmit={handleSubmit} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`w-full max-w-lg p-6 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg`}>
@@ -183,15 +247,15 @@ const Classes = () => {
             </div>
             <div className="space-y-4">
               <input required type="text" placeholder="Class Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />
-              <textarea required placeholder="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} rows="3"></textarea>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <textarea placeholder="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} rows="3"></textarea>
+              <div className="grid grid-cols-2 gap-4">
                 <input required type="text" placeholder="Subject" value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />
                 <select required value={formData.teacherId} onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`}>
                   <option value="">Select Teacher</option>
                   {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
-                <input required type="text" placeholder="Schedule (e.g., Mon, Wed 10am)" value={formData.schedule} onChange={(e) => setFormData({ ...formData, schedule: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />
-                <input required type="text" placeholder="Room No." value={formData.room} onChange={(e) => setFormData({ ...formData, room: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />
+                <input type="text" placeholder="Schedule (e.g., Mon, Wed 10am)" value={formData.schedule} onChange={(e) => setFormData({ ...formData, schedule: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />
+                <input type="text" placeholder="Room No." value={formData.room} onChange={(e) => setFormData({ ...formData, room: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
