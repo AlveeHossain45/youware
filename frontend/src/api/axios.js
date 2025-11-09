@@ -4,7 +4,7 @@ import axios from 'axios';
 // This line is the key.
 // In production, it will use the Vercel variable.
 // In development (npm run dev), it will use localhost.
-const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api' || 'https://youware-sandy.vercel.app/api';
 
 console.log('API Base URL:', baseURL); // <-- Add this for debugging!
 
