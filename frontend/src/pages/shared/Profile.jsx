@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User, Mail, Phone, MapPin, Award, BookOpen, Edit3, Camera,
-  Shield, CheckCircle, AlertCircle, Upload, X, Save, Calendar,
-  Briefcase, GraduationCap, Map, Smartphone, UserCheck
+  CheckCircle, AlertCircle, Upload, X, Save, Sparkles
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
@@ -18,8 +17,7 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     name: '', email: '', phone: '', address: '', bio: '', 
-    education: '', experience: '', avatar: '',
-    joinDate: 'January 2024', department: 'Engineering', status: 'Active'
+    education: '', experience: '', avatar: ''
   });
   const [uploading, setUploading] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
@@ -31,10 +29,7 @@ const Profile = () => {
       setProfileData({
         name: user.name || '', email: user.email || '', phone: user.phone || '',
         address: user.address || '', bio: user.bio || '', education: user.education || '',
-        experience: user.experience || '', avatar: user.avatar || '',
-        joinDate: user.joinDate || 'January 2024',
-        department: user.department || 'Engineering',
-        status: user.status || 'Active'
+        experience: user.experience || '', avatar: user.avatar || ''
       });
     }
   }, [user]);
@@ -80,10 +75,7 @@ const Profile = () => {
       setProfileData({
         name: user.name || '', email: user.email || '', phone: user.phone || '',
         address: user.address || '', bio: user.bio || '', education: user.education || '',
-        experience: user.experience || '', avatar: user.avatar || '',
-        joinDate: user.joinDate || 'January 2024',
-        department: user.department || 'Engineering',
-        status: user.status || 'Active'
+        experience: user.experience || '', avatar: user.avatar || ''
       });
     }
     setIsEditing(false);
@@ -118,14 +110,14 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${isDark ? 'from-gray-900 via-gray-800 to-gray-900' : 'from-gray-50 via-blue-50/30 to-gray-100'}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
@@ -137,11 +129,11 @@ const Profile = () => {
               <motion.h1 
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent"
+                className="text-3xl font-bold text-gray-900 dark:text-white mb-2"
               >
-                Profile
+                Profile Settings
               </motion.h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">Manage your personal information and preferences</p>
+              <p className="text-gray-600 dark:text-gray-400">Manage your personal information and preferences</p>
             </div>
             
             <div className="flex items-center gap-3 mt-6 lg:mt-0">
@@ -151,12 +143,12 @@ const Profile = () => {
                     initial={{ opacity: 0, x: 20 }} 
                     animate={{ opacity: 1, x: 0 }} 
                     exit={{ opacity: 0, x: 20 }}
-                    className={`px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-medium backdrop-blur-sm border ${
+                    className={`px-4 py-3 rounded-xl flex items-center gap-3 text-sm font-medium border ${
                       saveStatus.type === 'error' 
-                        ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' 
+                        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' 
                         : saveStatus.type === 'success' 
-                        ? 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'
-                        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                        ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'
+                        : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
                     }`}
                   >
                     {saveStatus.type === 'error' ? <AlertCircle size={18}/> : <CheckCircle size={18}/>}
@@ -171,8 +163,8 @@ const Profile = () => {
                 onClick={() => isEditing ? handleCancel() : setIsEditing(true)}
                 className={`px-6 py-3 rounded-xl font-semibold flex items-center gap-3 transition-all duration-300 ${
                   isEditing 
-                    ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
-                    : `bg-gradient-to-r ${currentTheme.primary} text-white shadow-lg hover:shadow-xl border border-transparent`
+                    ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600'
+                    : `bg-gradient-to-r ${currentTheme.primary} text-white shadow-lg hover:shadow-xl`
                 }`}
               >
                 {isEditing ? <X size={20}/> : <Edit3 size={20}/>}
@@ -184,93 +176,69 @@ const Profile = () => {
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
             {/* Left Sidebar - Profile Card */}
-            <div className="xl:col-span-1 space-y-8">
-              {/* Profile Card */}
+            <div className="xl:col-span-1">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 }}
-                className={`p-8 rounded-3xl backdrop-blur-sm border ${
+                className={`p-8 rounded-2xl border-2 transition-all duration-300 relative overflow-hidden ${
                   isDark 
-                    ? 'bg-gray-800/50 border-gray-700 shadow-xl' 
-                    : 'bg-white/80 border-white shadow-2xl'
+                    ? 'bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 shadow-2xl' 
+                    : 'bg-gradient-to-br from-white to-gray-50 border-gray-100 shadow-2xl'
                 }`}
               >
-                <div className="relative mx-auto w-40 h-40 group">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full p-1">
-                    <img 
-                      src={profileData.avatar} 
-                      alt={profileData.name} 
-                      className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800"
-                    />
-                  </div>
-                  {isEditing && (
-                    <motion.button 
-                      whileHover={{ scale: 1.1 }}
-                      onClick={() => setShowAvatarModal(true)} 
-                      className="absolute bottom-2 right-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded-full shadow-lg border-2 border-white dark:border-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-300"
-                    >
-                      <Camera size={18}/>
-                    </motion.button>
-                  )}
-                </div>
+                {/* Background decorative elements */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-600/10 rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-green-500/10 to-cyan-600/10 rounded-full translate-y-12 -translate-x-12"></div>
                 
-                <div className="text-center mt-6">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    {profileData.name}
-                  </h2>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-medium mb-4">
-                    <UserCheck size={16}/>
-                    <span className="capitalize">{user.role}</span>
+                <div className="relative z-10">
+                  {/* Avatar Section */}
+                  <div className="relative mx-auto w-48 h-48 group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 rounded-full p-1.5 shadow-2xl animate-gradient-x">
+                      <div className="absolute inset-0 rounded-full bg-white/10 backdrop-blur-sm"></div>
+                      <img 
+                        src={profileData.avatar} 
+                        alt={profileData.name} 
+                        className="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 relative z-10 shadow-lg"
+                      />
+                    </div>
+                    
+                    {/* Floating particles around avatar */}
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full animate-pulse shadow-lg"></div>
+                    <div className="absolute -bottom-2 -left-2 w-4 h-4 bg-cyan-400 rounded-full animate-bounce shadow-lg"></div>
+                    <div className="absolute top-4 -right-4 w-3 h-3 bg-pink-400 rounded-full animate-ping"></div>
+                    
+                    {isEditing && (
+                      <motion.button 
+                        whileHover={{ scale: 1.15, rotate: 5 }}
+                        onClick={() => setShowAvatarModal(true)} 
+                        className="absolute bottom-4 right-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-full shadow-2xl border-2 border-white dark:border-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-500 z-20"
+                      >
+                        <Camera size={20}/>
+                      </motion.button>
+                    )}
                   </div>
                   
-                  <div className="space-y-3 mt-6 text-left">
-                    <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                      <Calendar size={18} className="text-blue-500"/>
-                      <span className="text-sm">Joined {profileData.joinDate}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                      <Briefcase size={18} className="text-purple-500"/>
-                      <span className="text-sm">{profileData.department}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400">
-                      <Shield size={18} className="text-green-500"/>
-                      <span className="text-sm">{profileData.status}</span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Stats Card */}
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className={`p-6 rounded-3xl backdrop-blur-sm border ${
-                  isDark 
-                    ? 'bg-gray-800/50 border-gray-700 shadow-xl' 
-                    : 'bg-white/80 border-white shadow-2xl'
-                }`}
-              >
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Profile Completion</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Basic Info</span>
-                      <span>100%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full w-full"></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      <span>Contact Details</span>
-                      <span>75%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div className="bg-blue-500 h-2 rounded-full w-3/4"></div>
-                    </div>
+                  {/* User Info */}
+                  <div className="text-center mt-8 relative z-10">
+                    <motion.h2 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="text-2xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent"
+                    >
+                      {profileData.name}
+                    </motion.h2>
+                    
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm font-medium shadow-lg mb-6 border border-white/20"
+                    >
+                      <Sparkles size={16} className="text-yellow-300"/>
+                      <span className="capitalize font-semibold">{user.role}</span>
+                    </motion.div>
                   </div>
                 </div>
               </motion.div>
@@ -282,10 +250,10 @@ const Profile = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className={`p-8 rounded-3xl backdrop-blur-sm border ${
+                className={`p-8 rounded-2xl border transition-colors duration-300 ${
                   isDark 
-                    ? 'bg-gray-800/50 border-gray-700 shadow-xl' 
-                    : 'bg-white/80 border-white shadow-2xl'
+                    ? 'bg-gray-800 border-gray-700 shadow-lg' 
+                    : 'bg-white border-gray-200 shadow-lg'
                 }`}
               >
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -310,7 +278,7 @@ const Profile = () => {
                     value={profileData.phone} 
                     onChange={e => setProfileData({...profileData, phone: e.target.value})} 
                     disabled={!isEditing} 
-                    icon={Smartphone}
+                    icon={Phone}
                     placeholder="+1 (555) 000-0000"
                   />
                   <InputField 
@@ -318,7 +286,7 @@ const Profile = () => {
                     value={profileData.address} 
                     onChange={e => setProfileData({...profileData, address: e.target.value})} 
                     disabled={!isEditing} 
-                    icon={Map}
+                    icon={MapPin}
                     placeholder="Enter your address"
                   />
                   <InputField 
@@ -326,7 +294,7 @@ const Profile = () => {
                     value={profileData.education} 
                     onChange={e => setProfileData({...profileData, education: e.target.value})} 
                     disabled={!isEditing} 
-                    icon={GraduationCap}
+                    icon={BookOpen}
                     placeholder="Your educational background"
                   />
                   <InputField 
@@ -334,7 +302,7 @@ const Profile = () => {
                     value={profileData.experience} 
                     onChange={e => setProfileData({...profileData, experience: e.target.value})} 
                     disabled={!isEditing} 
-                    icon={Briefcase}
+                    icon={Award}
                     placeholder="Your professional experience"
                   />
                   
@@ -349,10 +317,10 @@ const Profile = () => {
                       disabled={!isEditing} 
                       rows="4" 
                       placeholder="Tell us about yourself..."
-                      className={`w-full p-4 rounded-2xl border transition-all duration-300 resize-none ${
+                      className={`w-full p-4 rounded-xl border transition-all duration-300 resize-none ${
                         isDark 
-                          ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20' 
-                          : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
                       } ${!isEditing && 'opacity-70 cursor-not-allowed'}`}
                     />
                   </div>
@@ -393,16 +361,16 @@ const Profile = () => {
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }} 
               exit={{ scale: 0.9, opacity: 0 }} 
-              className={`w-full max-w-md p-8 rounded-3xl backdrop-blur-sm border ${
+              className={`w-full max-w-md p-8 rounded-2xl border-2 ${
                 isDark 
-                  ? 'bg-gray-800/90 border-gray-700 shadow-2xl' 
-                  : 'bg-white/95 border-white shadow-3xl'
+                  ? 'bg-gray-800 border-gray-700 shadow-2xl' 
+                  : 'bg-white border-gray-200 shadow-2xl'
               }`}
               onClick={e => e.stopPropagation()}
             >
@@ -474,10 +442,10 @@ const InputField = ({ label, value, onChange, disabled, icon: Icon, type = "text
           onChange={onChange} 
           disabled={disabled} 
           placeholder={placeholder}
-          className={`w-full pl-12 pr-4 py-4 rounded-2xl border transition-all duration-300 ${
+          className={`w-full pl-12 pr-4 py-4 rounded-xl border transition-all duration-300 ${
             isDark 
-              ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20' 
-              : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+              ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20' 
+              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
           } ${disabled && 'opacity-70 cursor-not-allowed'}`}
         />
       </div>
