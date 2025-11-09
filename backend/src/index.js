@@ -36,7 +36,7 @@ const PORT = process.env.PORT || 5000;
 // Example: app.use(cors({ origin: 'https://yourapp.com' }));
 const whitelist = [
     'http://localhost:5173', // Your frontend development URL
-    'https://youware-sandy.vercel.app' // Your frontend PRODUCTION URL
+    'https://edustar.netlify.app' // Your frontend PRODUCTION URL
 ];
 
 const corsOptions = {
