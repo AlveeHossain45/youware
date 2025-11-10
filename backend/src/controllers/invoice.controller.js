@@ -38,6 +38,7 @@ const createInvoice = asyncHandler(async (req, res) => {
             description,
             amount: parsedAmount,   // পার্স করা নাম্বার ব্যবহার করা হচ্ছে
             dueDate: parsedDate,     // পার্স করা ডেট অবজেক্ট ব্যবহার করা হচ্ছে
+            status: 'pending',       // <-- ★★★ এই লাইনটিই মূল সমাধান ★★★
         },
     });
     
@@ -49,10 +50,14 @@ const createInvoice = asyncHandler(async (req, res) => {
 // @access  Private
 const getInvoices = asyncHandler(async (req, res) => {
     let where = {};
+    const { studentId } = req.query; // <-- studentId অনুযায়ী ফিল্টার করার সুবিধা যোগ করা হলো
+
     if (req.user.role === 'student') {
         where.studentId = req.user.id;
+    } else if (studentId) {
+        where.studentId = studentId;
     }
-    // Accountants and admins can see all
+    
     const invoices = await prisma.invoice.findMany({ 
         where, 
         include: { 

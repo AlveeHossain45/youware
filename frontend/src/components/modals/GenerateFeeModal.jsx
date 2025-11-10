@@ -48,7 +48,11 @@ const GenerateFeeModal = ({ isOpen, onClose, onSave, students }) => {
                     <select required value={formData.studentId} onChange={e => setFormData({...formData, studentId: e.target.value})} className={`w-full p-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`}>
                         <option value="">Select a Student</option>
                         {students.length > 0 ? (
-                            students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.email})</option>)
+                            students.map(s => (
+                                <option key={s.id} value={s.id}> 
+                                    {s.name} ({s.email})
+                                </option>
+                            ))
                         ) : (
                             <option disabled>No students found</option>
                         )}

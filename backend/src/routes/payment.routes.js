@@ -7,6 +7,6 @@ const { protect, checkRole } = require('../middleware/auth.middleware');
 router.use(protect);
 
 router.route('/')
-    .post(checkRole(['admin', 'accountant']), recordPayment);
+    .post(checkRole(['admin', 'accountant']), recordPayment); // <-- এখানে accountant যোগ করা হয়েছে
 
 module.exports = router;

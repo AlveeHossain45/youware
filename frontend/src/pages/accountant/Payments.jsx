@@ -1,19 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DollarSign, Search, Plus, CreditCard, X, Users, AlertCircle } from 'lucide-react';
+import { DollarSign, Search, Plus, CreditCard, X, Users, AlertCircle, CheckCircle } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
 import apiClient from '../../api/axios';
-import GenerateFeeModal from '../../components/modals/GenerateFeeModal'; // <-- নতুন ইম্পোর্ট
-import RecordPaymentModal from '../../components/modals/RecordPaymentModal'; // <-- নতুন ইম্পোর্ট
+import GenerateFeeModal from '../../components/modals/GenerateFeeModal';
+import RecordPaymentModal from '../../components/modals/RecordPaymentModal';
+
+// Notification Component
+const Notification = ({ message, type, onClear }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClear, 4000);
+        return () => clearTimeout(timer);
+    }, [onClear]);
+
+    const bgColor = type === 'success' ? 'bg-green-500/10' : 'bg-red-500/10';
+    const textColor = type === 'success' ? 'text-green-500' : 'text-red-500';
+    const Icon = type === 'success' ? CheckCircle : AlertCircle;
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0, y: -20, x: '-50%' }} 
+            animate={{ opacity: 1, y: 0, x: '-50%' }} 
+            exit={{ opacity: 0, y: -20, x: '-50%' }} 
+            className={`fixed top-20 left-1/2 z-50 p-4 rounded-xl flex items-center gap-3 shadow-lg ${bgColor} border ${type === 'success' ? 'border-green-500/20' : 'border-red-500/20'}`}
+        >
+            <Icon className={`w-6 h-6 ${textColor}`} />
+            <p className={`font-medium ${textColor}`}>{message}</p>
+        </motion.div>
+    );
+};
 
 const Payments = () => {
     const { isDark, currentTheme } = useTheme();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [allStudents, setAllStudents] = useState([]);
     const [studentsWithFees, setStudentsWithFees] = useState([]);
-    const [filteredStudents, setFilteredStudents] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -21,25 +44,18 @@ const Payments = () => {
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [notification, setNotification] = useState({ message: '', type: '' });
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
-    useEffect(() => {
-        let filtered = studentsWithFees;
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(s => s.status.toLowerCase() === statusFilter);
-        }
-        if (searchTerm) {
-            filtered = filtered.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.email.toLowerCase().includes(searchTerm.toLowerCase()));
-        }
-        setFilteredStudents(filtered);
-    }, [studentsWithFees, searchTerm, statusFilter]);
+    const filteredStudents = studentsWithFees.filter(s => {
+        const statusMatch = statusFilter === 'all' || s.status.toLowerCase() === statusFilter;
+        const searchMatch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.email.toLowerCase().includes(searchTerm.toLowerCase());
+        return statusMatch && searchMatch;
+    });
 
     const loadData = async () => {
-        setLoading(true);
-        setError('');
+        setLoading(true); setError('');
         try {
             const [studentsRes, invoicesRes] = await Promise.all([
                 apiClient.get('/users?role=student'),
@@ -53,9 +69,7 @@ const Payments = () => {
                 const studentInvoices = invoices.filter(inv => inv.studentId === student.id);
                 const totalDue = studentInvoices.reduce((sum, inv) => sum + inv.amount, 0);
                 let totalPaid = 0;
-                studentInvoices.forEach(inv => {
-                    totalPaid += (inv.payments || []).reduce((sum, p) => sum + p.amountPaid, 0);
-                });
+                studentInvoices.forEach(inv => { totalPaid += (inv.payments || []).reduce((sum, p) => sum + p.amountPaid, 0); });
                 const balance = totalDue - totalPaid;
                 
                 let status = 'No Dues';
@@ -64,55 +78,75 @@ const Payments = () => {
                     if (isOverdue) status = 'Overdue';
                     else if (totalPaid > 0) status = 'Partial';
                     else status = 'Pending';
-                } else if (totalDue > 0) {
-                    status = 'Paid';
-                }
+                } else if (totalDue > 0) status = 'Paid';
                 return { ...student, totalDue, totalPaid, balance, status };
             });
             setStudentsWithFees(studentFeeDetails);
-        } catch (err) {
-            setError("Failed to load financial data. Please try again later.");
-            console.error("Failed to load financial data:", err);
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { setError("Failed to load financial data. Please try again later."); console.error(err); } 
+        finally { setLoading(false); }
     };
 
     const handleRecordPayment = async (paymentData) => {
-        const invoicesRes = await apiClient.get(`/invoices?studentId=${selectedStudent.id}`);
-        const unpaidInvoice = invoicesRes.data.find(inv => inv.status !== 'paid');
-        if (!unpaidInvoice) throw new Error("No outstanding invoices found for this student.");
-        await apiClient.post('/payments', { invoiceId: unpaidInvoice.id, ...paymentData });
-        await loadData();
+        try {
+            const invoicesRes = await apiClient.get(`/invoices?studentId=${selectedStudent.id}`);
+            const unpaidInvoice = invoicesRes.data.find(inv => inv.status !== 'paid');
+            if (!unpaidInvoice) throw new Error("No outstanding invoices found for this student.");
+            
+            await apiClient.post('/payments', { 
+                invoiceId: unpaidInvoice.id, 
+                amountPaid: parseFloat(paymentData.amount),
+                paymentMethod: paymentData.paymentMethod,
+                transactionId: paymentData.transactionId
+            });
+            setNotification({ message: 'Payment recorded successfully!', type: 'success' });
+            await loadData();
+        } catch (error) {
+            setNotification({ message: error.response?.data?.message || 'Failed to record payment.', type: 'error' });
+            throw error;
+        }
     };
 
     const handleGenerateFee = async (feeData) => {
-        await apiClient.post('/invoices', feeData);
-        await loadData();
+        try {
+            await apiClient.post('/invoices', feeData);
+            setNotification({ message: 'Fee generated successfully!', type: 'success' });
+            await loadData();
+        } catch (error) {
+            setNotification({ message: error.response?.data?.message || 'Failed to generate fee.', type: 'error' });
+            throw error;
+        }
     };
     
-    const getStatusBadge = (status) => { /* ... */ };
+    const getStatusBadge = (status) => {
+        const styles = {
+            Paid: 'bg-green-500/10 text-green-500', Pending: 'bg-yellow-500/10 text-yellow-500',
+            Partial: 'bg-blue-500/10 text-blue-500', Overdue: 'bg-red-500/10 text-red-500',
+            'No Dues': 'bg-gray-500/10 text-gray-500',
+        };
+        return styles[status] || styles.Pending;
+    };
 
-    if (loading) {
-        return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
-    }
+    if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
     
-    if (error) {
-        return <div className="min-h-screen flex items-center justify-center text-center"><AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4"/><p className="text-red-500">{error}</p></div>;
-    }
-
     return (
         <div className={`min-h-screen ${isDark ? currentTheme.dark.bg : currentTheme.light.bg}`}>
             <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
             <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+            
+            <AnimatePresence>
+                {notification.message && <Notification message={notification.message} type={notification.type} onClear={() => setNotification({ message: '', type: '' })} />}
+            </AnimatePresence>
+
             <main className={`pt-20 transition-all duration-300 ${sidebarOpen ? 'lg:ml-72' : 'lg:ml-0'}`}>
                 <div className="p-6 lg:p-8">
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
                         <div className="flex items-center justify-between">
-                            <div><h1 className={`text-3xl font-bold`}>Fee Management</h1><p className={`text-lg mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Track and manage student payments.</p></div>
+                            <div><h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Fee Management</h1><p className={`text-lg mt-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Track and manage student payments.</p></div>
                             <motion.button onClick={() => setShowGenerateFeeModal(true)} whileHover={{ scale: 1.05 }} className={`px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r ${currentTheme.primary} shadow-lg flex items-center gap-2`}><Plus /> Generate Fee</motion.button>
                         </div>
                     </motion.div>
+
+                    {error && <div className="mb-6 p-4 text-red-500 bg-red-500/10 rounded-lg">{error}</div>}
 
                     <div className={`p-4 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg`}>
                         <div className="flex flex-col md:flex-row gap-4 p-4">
@@ -140,33 +174,11 @@ const Payments = () => {
             </main>
             
             <AnimatePresence>
-                <GenerateFeeModal 
-                    isOpen={showGenerateFeeModal}
-                    onClose={() => setShowGenerateFeeModal(false)}
-                    onSave={handleGenerateFee}
-                    students={allStudents}
-                />
-                <RecordPaymentModal
-                    isOpen={showPaymentModal}
-                    onClose={() => setShowPaymentModal(false)}
-                    onSave={handleRecordPayment}
-                    student={selectedStudent}
-                />
+                {showGenerateFeeModal && <GenerateFeeModal key="generate-fee-modal" isOpen={showGenerateFeeModal} onClose={() => setShowGenerateFeeModal(false)} onSave={handleGenerateFee} students={allStudents} />}
+                {showPaymentModal && <RecordPaymentModal key="record-payment-modal" isOpen={showPaymentModal} onClose={() => setShowPaymentModal(false)} onSave={handleRecordPayment} student={selectedStudent} />}
             </AnimatePresence>
         </div>
     );
-};
-
-// getStatusBadge অপরিবর্তিত থাকবে
-const getStatusBadge = (status) => {
-    const styles = {
-        Paid: 'bg-green-500/10 text-green-500',
-        Pending: 'bg-yellow-500/10 text-yellow-500',
-        Partial: 'bg-blue-500/10 text-blue-500',
-        Overdue: 'bg-red-500/10 text-red-500',
-        'No Dues': 'bg-gray-500/10 text-gray-500',
-    };
-    return styles[status] || styles.Pending;
 };
 
 export default Payments;
