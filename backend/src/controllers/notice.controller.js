@@ -6,13 +6,20 @@ const asyncHandler = require('express-async-handler');
 // @access  Private/Admin or Teacher
 const createNotice = asyncHandler(async (req, res) => {
     const { title, content, audience, priority, isPinned } = req.body;
+    
+    // Validation
+    if (!title || !content || !audience || !priority) {
+        res.status(400);
+        throw new Error('Please provide all required fields: title, content, audience, priority.');
+    }
+
     const notice = await prisma.notice.create({
         data: {
             title,
             content,
             audience,
             priority,
-            isPinned,
+            isPinned: isPinned || false,
             authorId: req.user.id,
         },
     });
@@ -24,18 +31,20 @@ const createNotice = asyncHandler(async (req, res) => {
 // @access  Private
 const getNotices = asyncHandler(async (req, res) => {
     let audienceFilter = ['Everyone'];
+    
+    // ব্যবহারকারীর রোল অনুযায়ী ফিল্টার সেট করা হচ্ছে
     if (req.user.role === 'student') {
         audienceFilter.push('Students');
     } else if (req.user.role === 'teacher') {
         audienceFilter.push('Teachers');
-    } else if (req.user.role === 'admin') {
+    } else if (req.user.role === 'admin' || req.user.role === 'accountant') { // Admin ও Accountant সবাইকেই দেখতে পাবে
         audienceFilter = ['Everyone', 'Students', 'Teachers'];
     }
 
     const notices = await prisma.notice.findMany({
         where: { audience: { in: audienceFilter } },
-        orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
-        include: { author: { select: { name: true } } }
+        orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }], // পিন করা নোটিশ আগে দেখাবে
+        include: { author: { select: { name: true, avatar: true } } } // লেখকের ছবিও পাঠানো হচ্ছে
     });
     res.json(notices);
 });
@@ -49,7 +58,7 @@ const updateNotice = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Notice not found');
     }
-    // Security: Only the author or an admin can update
+    // Security: শুধুমাত্র নোটিশের লেখক বা অ্যাডমিন এটি আপডেট করতে পারবে
     if (notice.authorId !== req.user.id && req.user.role !== 'admin') {
         res.status(403);
         throw new Error('Not authorized to update this notice');
@@ -71,7 +80,7 @@ const deleteNotice = asyncHandler(async (req, res) => {
         res.status(404);
         throw new Error('Notice not found');
     }
-     // Security: Only the author or an admin can delete
+     // Security: শুধুমাত্র নোটিশের লেখক বা অ্যাডমিন এটি ডিলিট করতে পারবে
     if (notice.authorId !== req.user.id && req.user.role !== 'admin') {
         res.status(403);
         throw new Error('Not authorized to delete this notice');
