@@ -13,8 +13,9 @@ const { protect, checkRole } = require('../middleware/auth.middleware');
 router.use(protect);
 
 // Admin-only routes
+// Admin-only routes
 router.route('/')
-    .get(checkRole(['admin']), getAllUsers)
+    .get(checkRole(['admin', 'accountant']), getAllUsers) // <-- accountant যোগ করা হয়েছে
     .post(checkRole(['admin']), createUser);
 
 router.route('/:id')
