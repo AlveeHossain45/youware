@@ -29,7 +29,9 @@ const ManageStaff = () => {
     const loadStaff = async () => {
         setLoading(true);
         try {
-            const response = await apiClient.get('/users?excludeRoles=student,teacher');
+            // --- এই API কলটি পরিবর্তন করা হয়েছে ---
+            // এখন শুধুমাত্র নির্দিষ্ট স্টাফ রোলগুলো আনা হবে
+            const response = await apiClient.get('/users?role=accountant,librarian,clerk,staff');
             setStaff(response.data);
         } catch (error) {
             console.error('Error loading staff:', error);
@@ -175,7 +177,6 @@ const ManageStaff = () => {
                                             <option value="accountant">Accountant</option>
                                             <option value="librarian">Librarian</option>
                                             <option value="clerk">Clerk</option>
-                                            <option value="admin">Admin</option>
                                         </select>
                                     </div>
                                     {!isEditing && <input required type="password" placeholder="Password (min 6 characters)" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className={`w-full px-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />}

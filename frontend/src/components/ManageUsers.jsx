@@ -1,14 +1,14 @@
-// frontend/src/components/ManageUsers.jsx
+// src/components/ManageUsers.jsx
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Plus, Edit3, Trash2, X, AlertCircle } from 'lucide-react';
+import { Search, Plus, Edit3, Trash2, X, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import apiClient from '../api/axios';
+import apiClient from '../api/axios'; // API client ব্যবহার করা হয়েছে
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
 
-const ManageUsers = ({ role, title, description }) => {
+const ManageUsers = ({ role, title, description, classId, onBack }) => {
     const { isDark, currentTheme } = useTheme();
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [users, setUsers] = useState([]);
@@ -24,12 +24,18 @@ const ManageUsers = ({ role, title, description }) => {
         email: '',
         password: '',
         role: role,
+        classId: classId || null
     });
 
     const loadUsers = async () => {
         setLoading(true);
         try {
-            const response = await apiClient.get(`/users?role=${role}`);
+            // --- এই অংশটি API কল করার জন্য আপডেট করা হয়েছে ---
+            const params = new URLSearchParams({ role });
+            if (classId) {
+                params.append('classId', classId);
+            }
+            const response = await apiClient.get(`/users?${params.toString()}`);
             setUsers(response.data);
         } catch (error) {
             console.error(`Error loading ${role}s:`, error);
@@ -40,7 +46,7 @@ const ManageUsers = ({ role, title, description }) => {
     
     useEffect(() => {
         loadUsers();
-    }, [role]);
+    }, [role, classId]);
 
     useEffect(() => {
         let filtered = users.filter(user =>
@@ -55,28 +61,22 @@ const ManageUsers = ({ role, title, description }) => {
         if (user) {
             setIsEditing(true);
             setSelectedUser(user);
-            setFormData({ name: user.name, email: user.email, role: user.role, password: '' });
+            setFormData({ name: user.name, email: user.email, role: user.role, classId: user.classId, password: '' });
         } else {
             setIsEditing(false);
             setSelectedUser(null);
-            setFormData({ name: '', email: '', password: '', role: role });
+            setFormData({ name: '', email: '', password: '', role: role, classId: classId });
         }
         setShowModal(true);
-    };
-
-    const handleCloseModal = () => {
-        setShowModal(false);
-        setModalError('');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setModalError('');
-        
         try {
             if (isEditing) {
                 const { name, email } = formData;
-                await apiClient.put(`/users/${selectedUser.id}`, { name, email, role: formData.role });
+                await apiClient.put(`/users/${selectedUser.id}`, { name, email, role: formData.role, classId: formData.classId });
             } else {
                 await apiClient.post('/users', formData);
             }
@@ -99,11 +99,9 @@ const ManageUsers = ({ role, title, description }) => {
             }
         }
     };
-    
-    const itemVariants = {
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 30 } }
-    };
+
+    const handleCloseModal = () => setShowModal(false);
+    const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } };
 
     return (
         <div className={`min-h-screen ${isDark ? currentTheme.dark.bg : 'light-bg'}`}>
@@ -113,16 +111,21 @@ const ManageUsers = ({ role, title, description }) => {
                 <div className="p-6 lg:p-8">
                     <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
                         <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>{title}</h1>
-                                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{description}</p>
+                            <div className="flex items-center gap-4">
+                                {onBack && (
+                                    <motion.button onClick={onBack} whileHover={{scale: 1.1}} className="p-2 rounded-full hover:bg-gray-500/10"><ArrowLeft/></motion.button>
+                                )}
+                                <div>
+                                    <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>{title}</h1>
+                                    <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{description}</p>
+                                </div>
                             </div>
-                            <motion.button onClick={() => handleOpenModal()} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className={`px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r ${currentTheme.primary} shadow-lg hover:shadow-xl flex items-center gap-2`}>
-                                <Plus className="w-5 h-5" /> Add {role.charAt(0).toUpperCase() + role.slice(1)}
+                            <motion.button onClick={() => handleOpenModal()} whileHover={{ scale: 1.05 }} className={`px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r ${currentTheme.primary} shadow-lg flex items-center gap-2`}>
+                                <Plus /> Add {role.charAt(0).toUpperCase() + role.slice(1)}
                             </motion.button>
                         </div>
                     </motion.div>
-
+                    
                     <motion.div variants={itemVariants} initial="hidden" animate="visible" className={`mb-6 p-4 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg`}>
                         <div className="relative">
                             <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
