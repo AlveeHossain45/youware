@@ -1,73 +1,32 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, LogIn, Shield, Users, BookOpen, GraduationCap, ArrowLeft, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // useNavigate ইমপোর্ট করা হয়েছে
+import { Mail, Lock, LogIn, Shield, Users, BookOpen, GraduationCap, ArrowLeft, Sparkles, Eye, EyeOff } from 'lucide-react'; // <-- Eye এবং EyeOff আইকন ইম্পোর্ট করা হয়েছে
+import { useNavigate } from 'react-router-dom';
 import Logo from '../../components/Logo';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Login = () => {
   const { isDark, currentTheme } = useTheme();
-  const { login, logout } = useAuth(); // <-- logout ফাংশনটি আনা হয়েছে
-  const navigate = useNavigate(); // <-- useNavigate ব্যবহার করা হয়েছে
+  const { login, logout } = useAuth();
+  const navigate = useNavigate();
   
   const [selectedPortal, setSelectedPortal] = useState(null);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // <-- নতুন স্টেট যোগ করা হয়েছে
 
   const portals = [
-    { 
-      id: 'admin', 
-      title: 'Admin', 
-      icon: Shield, 
-      color: 'from-red-500 to-pink-500',
-      bgColor: 'from-red-500/10 to-pink-500/10',
-      description: 'Full system access and management',
-      email: 'admin@eduversepro.com',
-      password: 'admin123'
-    },
-    { 
-      id: 'teacher', 
-      title: 'Teacher', 
-      icon: Users, 
-      color: 'from-blue-500 to-cyan-500',
-      bgColor: 'from-blue-500/10 to-cyan-500/10',
-      description: 'Manage courses and students',
-      email: 'teacher@eduversepro.com',
-      password: 'teacher123'
-    },
-    { 
-      id: 'student', 
-      title: 'Student', 
-      icon: BookOpen, 
-      color: 'from-green-500 to-emerald-500',
-      bgColor: 'from-green-500/10 to-emerald-500/10',
-      description: 'Access learning materials',
-      email: 'student@eduversepro.com',
-      password: 'student123'
-    },
-    { 
-      id: 'accountant', 
-      title: 'Accountant', 
-      icon: GraduationCap, 
-      color: 'from-purple-500 to-indigo-500',
-      bgColor: 'from-purple-500/10 to-indigo-500/10',
-      description: 'Financial management system',
-      email: 'accountant@eduversepro.com',
-      password: 'accountant123'
-    }
+    { id: 'admin', title: 'Admin', icon: Shield, color: 'from-red-500 to-pink-500', bgColor: 'from-red-500/10 to-pink-500/10', description: 'Full system access and management', email: 'admin@eduversepro.com', password: 'admin123' },
+    { id: 'teacher', title: 'Teacher', icon: Users, color: 'from-blue-500 to-cyan-500', bgColor: 'from-blue-500/10 to-cyan-500/10', description: 'Manage courses and students', email: 'teacher@eduversepro.com', password: 'teacher123' },
+    { id: 'student', title: 'Student', icon: BookOpen, color: 'from-green-500 to-emerald-500', bgColor: 'from-green-500/10 to-emerald-500/10', description: 'Access learning materials', email: 'student@eduversepro.com', password: 'student123' },
+    { id: 'accountant', title: 'Accountant', icon: GraduationCap, color: 'from-purple-500 to-indigo-500', bgColor: 'from-purple-500/10 to-indigo-500/10', description: 'Financial management system', email: 'accountant@eduversepro.com', password: 'accountant123' }
   ];
 
   const handlePortalSelect = (portal) => {
     setSelectedPortal(portal);
-    setFormData({
-      email: portal.email,
-      password: portal.password
-    });
+    setFormData({ email: portal.email, password: portal.password });
     setError('');
   };
 
@@ -77,24 +36,18 @@ const Login = () => {
     setError('');
   };
 
-  // --- হ্যান্ডেল সাবমিট ফাংশনে মূল পরিবর্তন আনা হয়েছে ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
       const result = await login(formData.email, formData.password);
-      
       if (result.success) {
-        // ধাপ ১: ব্যবহারকারীর আসল রোল এবং তিনি কোন পোর্টালে ক্লিক করেছেন তা চেক করুন
         if (result.user.role === selectedPortal.id) {
-          // ধাপ ২: যদি রোল মিলে যায়, তবে সঠিক ড্যাশবোর্ডে পাঠান
           navigate(`/${result.user.role}/dashboard`, { replace: true });
         } else {
-          // ধাপ ৩: যদি রোল না মেলে, তবে এরর মেসেজ দেখান এবং লগআউট করুন
           setError(`Access Denied. Your credentials are for the '${result.user.role}' portal.`);
-          logout(); // <-- সফল লগইনটি বাতিল করা হচ্ছে
+          logout();
         }
       } else {
         setError(result.error);
@@ -165,7 +118,32 @@ const Login = () => {
                     <AnimatePresence>{error && (<motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className={`mb-4 p-3 rounded-xl flex items-center gap-2 ${isDark ? 'bg-red-900/30 border border-red-800/50' : 'bg-red-50 border border-red-200'}`}><Sparkles className="w-4 h-4 text-red-500 flex-shrink-0" /><p className={`text-xs ${isDark ? 'text-red-300' : 'text-red-600'}`}>{error}</p></motion.div>)}</AnimatePresence>
                     <motion.form onSubmit={handleSubmit} className="space-y-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
                       <div><label className={`block text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Email</label><motion.div whileFocus={{ scale: 1.01 }} className="relative"><Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} /><input type="email" name="email" value={formData.email} onChange={handleInputChange} className={`w-full pl-10 pr-3 py-3 rounded-xl transition-all duration-200 text-sm ${isDark ? 'bg-gray-700/50 border border-gray-600/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30' : 'bg-white/70 border border-gray-200/50 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/30'} focus:shadow-lg`} required /></motion.div></div>
-                      <div><label className={`block text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'} mb-2`}>Password</label><motion.div whileFocus={{ scale: 1.01 }} className="relative"><Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} /><input type="password" name="password" value={formData.password} onChange={handleInputChange} className={`w-full pl-10 pr-3 py-3 rounded-xl transition-all duration-200 text-sm ${isDark ? 'bg-gray-700/50 border border-gray-600/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30' : 'bg-white/70 border border-gray-200/50 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/30'} focus:shadow-lg`} required /></motion.div></div>
+                      
+                      {/* --- পাসওয়ার্ড ফিল্ডে পরিবর্তন আনা হয়েছে --- */}
+                      <div>
+                        <label className={`block text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+                          Password
+                        </label>
+                        <motion.div whileFocus={{ scale: 1.01 }} className="relative">
+                          <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={formData.password}
+                            onChange={handleInputChange}
+                            className={`w-full pl-10 pr-10 py-3 rounded-xl transition-all duration-200 text-sm ${isDark ? 'bg-gray-700/50 border border-gray-600/50 text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/30' : 'bg-white/70 border border-gray-200/50 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/30'} focus:shadow-lg`}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full text-gray-400 hover:text-gray-200"
+                          >
+                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </motion.div>
+                      </div>
+
                       <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.02 }} whileTap={{ scale: loading ? 1 : 0.98 }} className={`w-full py-3 px-4 rounded-xl font-bold text-white bg-gradient-to-r ${selectedPortal.color} shadow-lg hover:shadow-xl transform transition-all duration-200 ${loading ? 'opacity-50 cursor-not-allowed' : ''} flex items-center justify-center gap-2 relative overflow-hidden group text-base`}><div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:translate-x-full transition-transform duration-600" />{loading ? (<><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /><span>Signing in...</span></>) : (<><LogIn className="w-4 h-4" /><span>Access Portal</span></>)}</motion.button>
                     </motion.form>
                     <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className={`mt-4 p-3 rounded-xl text-center ${isDark ? 'bg-gray-700/30 border border-gray-600/30' : 'bg-gray-100/50 border border-gray-200/30'}`}><p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}><span className="font-semibold">Demo:</span> Credentials auto-filled</p></motion.div>
