@@ -4,50 +4,60 @@ import { DollarSign, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { storage } from '../../utils/storage';
+import apiClient from '../../api/axios';
 
-const StudentFinance = () => {
+const StudentFinancePage = () => {
     const { isDark, currentTheme } = useTheme();
-    const { user } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [fees, setFees] = useState([]);
+    const [invoices, setInvoices] = useState([]);
     const [summary, setSummary] = useState({ totalFees: 0, totalPaid: 0, balanceDue: 0 });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
-        if (user) {
-            const allFees = storage.get('fees') || [];
-            const studentFees = allFees.filter(f => f.studentId === user.id);
+        const loadFinancialData = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                // এই API কলটি এখন ব্যাকএন্ড থেকে স্বয়ংক্রিয়ভাবে ফিল্টার করা ডেটা আনবে
+                const response = await apiClient.get('/invoices'); 
+                const studentInvoices = response.data;
 
-            const totalFees = studentFees.reduce((sum, f) => sum + f.amount, 0);
-            const totalPaid = studentFees.reduce((sum, f) => sum + (f.amountPaid || (f.status === 'paid' ? f.amount : 0)), 0);
-            const balanceDue = totalFees - totalPaid;
+                const totalFees = studentInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+                let totalPaid = 0;
+                studentInvoices.forEach(inv => {
+                    totalPaid += (inv.payments || []).reduce((sum, p) => sum + p.amountPaid, 0);
+                });
+                const balanceDue = totalFees - totalPaid;
 
-            setFees(studentFees);
-            setSummary({ totalFees, totalPaid, balanceDue });
-            setLoading(false);
-        }
-    }, [user]);
+                setInvoices(studentInvoices);
+                setSummary({ totalFees, totalPaid, balanceDue });
+            } catch (err) {
+                console.error('Failed to load financial data:', err);
+                setError('Could not load your financial records. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        loadFinancialData();
+    }, []);
     
-    const getStatusBadge = (fee) => {
-        if (fee.status === 'paid') {
-            return { bg: 'bg-green-500/10', text: 'text-green-500', label: 'Paid' };
+    const getStatusBadge = (invoice) => {
+        let currentStatus = invoice.status;
+        const isOverdue = new Date(invoice.dueDate) < new Date() && currentStatus !== 'paid';
+
+        if (isOverdue) return { bg: 'bg-red-500/10', text: 'text-red-500', label: 'Overdue' };
+
+        switch (currentStatus) {
+            case 'paid': return { bg: 'bg-green-500/10', text: 'text-green-500', label: 'Paid' };
+            case 'partial': return { bg: 'bg-blue-500/10', text: 'text-blue-500', label: 'Partial' };
+            default: return { bg: 'bg-yellow-500/10', text: 'text-yellow-500', label: 'Pending' };
         }
-        const isOverdue = new Date(fee.dueDate) < new Date();
-        if (isOverdue) {
-            return { bg: 'bg-red-500/10', text: 'text-red-500', label: 'Overdue' };
-        }
-        if (fee.status === 'partial') {
-            return { bg: 'bg-blue-500/10', text: 'text-blue-500', label: 'Partial' };
-        }
-        return { bg: 'bg-yellow-500/10', text: 'text-yellow-500', label: 'Pending' };
     };
 
-    const itemVariants = {
-        hidden: { y: 20, opacity: 0 },
-        visible: { y: 0, opacity: 1 }
-    };
+    if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+    if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">{error}</div>;
 
     return (
         <div className={`min-h-screen ${isDark ? currentTheme.dark.bg : currentTheme.light.bg}`}>
@@ -75,22 +85,28 @@ const StudentFinance = () => {
                                         <th className="px-6 py-4 text-left text-xs font-semibold uppercase">Due Date</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold uppercase">Amount</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold uppercase">Status</th>
+                                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {fees.length > 0 ? fees.map(fee => {
-                                        const status = getStatusBadge(fee);
+                                    {invoices.length > 0 ? invoices.map(invoice => {
+                                        const status = getStatusBadge(invoice);
                                         return (
-                                            <tr key={fee.id} className={`border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
-                                                <td className="px-6 py-4 font-medium">{fee.description}</td>
-                                                <td className="px-6 py-4 text-gray-400">{new Date(fee.dueDate).toLocaleDateString()}</td>
-                                                <td className="px-6 py-4 font-mono">${fee.amount.toFixed(2)}</td>
+                                            <tr key={invoice.id} className={`border-b ${isDark ? 'border-gray-800' : 'border-gray-100'}`}>
+                                                <td className="px-6 py-4 font-medium">{invoice.description}</td>
+                                                <td className="px-6 py-4 text-gray-400">{new Date(invoice.dueDate).toLocaleDateString()}</td>
+                                                <td className="px-6 py-4 font-mono">${invoice.amount.toFixed(2)}</td>
                                                 <td className="px-6 py-4"><span className={`px-2 py-1 text-xs rounded-full font-medium ${status.bg} ${status.text}`}>{status.label}</span></td>
+                                                <td className="px-6 py-4 text-right">
+                                                    {invoice.status !== 'paid' && (
+                                                        <button className={`px-4 py-2 text-sm rounded-lg text-white bg-gradient-to-r ${currentTheme.primary} shadow-md`}>Pay Now</button>
+                                                    )}
+                                                </td>
                                             </tr>
                                         )
                                     }) : (
                                         <tr>
-                                            <td colSpan="4" className="text-center py-16 text-gray-500">You have no financial records yet.</td>
+                                            <td colSpan="5" className="text-center py-16 text-gray-500">You have no financial records yet.</td>
                                         </tr>
                                     )}
                                 </tbody>
@@ -118,4 +134,4 @@ const StatCard = ({ icon: Icon, title, value, color }) => {
     );
 };
 
-export default StudentFinance;
+export default StudentFinancePage;

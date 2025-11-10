@@ -9,36 +9,28 @@ const asyncHandler = require('express-async-handler');
 const createInvoice = asyncHandler(async (req, res) => {
     const { studentId, description, amount, dueDate } = req.body;
 
-    // --- নতুন ভ্যালিডেশন এবং ডেটা পার্সিং ---
-
-    // ১. সব ফিল্ড দেওয়া হয়েছে কিনা তা চেক করা
     if (!studentId || !description || !amount || !dueDate) {
-        res.status(400); // 400 Bad Request
-        throw new Error('Please provide all required fields: studentId, description, amount, and dueDate.');
+        res.status(400);
+        throw new Error('Please provide all required fields.');
     }
-
-    // ২. amount-কে স্ট্রিং থেকে নাম্বারে রূপান্তর করা
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount < 0) {
         res.status(400);
-        throw new Error('Invalid amount provided. Must be a positive number.');
+        throw new Error('Invalid amount provided.');
     }
-
-    // ৩. dueDate-কে স্ট্রিং থেকে সঠিক Date অবজেক্টে রূপান্তর করা
     const parsedDate = new Date(dueDate);
     if (isNaN(parsedDate.getTime())) {
         res.status(400);
-        throw new Error('Invalid dueDate format provided. Use YYYY-MM-DD format.');
+        throw new Error('Invalid dueDate format.');
     }
 
-    // --- এখন সঠিক ফরম্যাটের ডেটা দিয়ে ইনভয়েস তৈরি করা হবে ---
     const invoice = await prisma.invoice.create({
         data: {
             studentId,
             description,
-            amount: parsedAmount,   // পার্স করা নাম্বার ব্যবহার করা হচ্ছে
-            dueDate: parsedDate,     // পার্স করা ডেট অবজেক্ট ব্যবহার করা হচ্ছে
-            status: 'pending',       // <-- ★★★ এই লাইনটিই মূল সমাধান ★★★
+            amount: parsedAmount,
+            dueDate: parsedDate,
+            status: 'pending',
         },
     });
     
@@ -50,11 +42,15 @@ const createInvoice = asyncHandler(async (req, res) => {
 // @access  Private
 const getInvoices = asyncHandler(async (req, res) => {
     let where = {};
-    const { studentId } = req.query; // <-- studentId অনুযায়ী ফিল্টার করার সুবিধা যোগ করা হলো
+    const { studentId } = req.query;
 
-    if (req.user.role === 'student') {
+    // --- মূল পরিবর্তন এখানে ---
+    // যদি ব্যবহারকারী অ্যাডমিন বা অ্যাকাউন্টেন্ট না হন, তবে শুধুমাত্র তাদের নিজেদের ডেটা দেখার অনুমতি দিন
+    if (req.user.role !== 'admin' && req.user.role !== 'accountant') {
         where.studentId = req.user.id;
-    } else if (studentId) {
+    } 
+    // যদি অ্যাডমিন কোনো নির্দিষ্ট ছাত্রের ডেটা চান, তাহলে ফিল্টার করুন
+    else if (studentId) {
         where.studentId = studentId;
     }
     

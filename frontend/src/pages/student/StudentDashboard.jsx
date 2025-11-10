@@ -1,64 +1,82 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Calendar, Clock, FileText, Award, TrendingUp, Play } from 'lucide-react';
+import { BookOpen, Calendar, Clock, FileText, Award, TrendingUp, Play, DollarSign, AlertCircle } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { storage } from '../../utils/storage';
+import apiClient from '../../api/axios'; // apiClient ইম্পোর্ট করা হয়েছে
 
 const StudentDashboard = () => {
     const { isDark, currentTheme } = useTheme();
     const { user } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(true);
-    const [stats, setStats] = useState({ enrolledClasses: 0, upcomingExams: 0, pendingAssignments: 0, attendanceRate: 0 });
+    const [stats, setStats] = useState({ 
+        enrolledClasses: 0, 
+        upcomingExams: 0, 
+        pendingAssignments: 0, // Mock for now
+        attendanceRate: 0,
+        pendingFees: 0 // নতুন স্টেট যোগ করা হয়েছে
+    });
     const [upcomingExams, setUpcomingExams] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
-        const loadDashboardData = () => {
+        const loadDashboardData = async () => {
+            if (!user) return;
+            setLoading(true);
             try {
-                const classes = storage.get('classes');
-                const exams = storage.get('exams');
-                const attendance = storage.get('attendance');
-                
-                const studentClass = classes.find(c => user.classId && c.id === user.classId);
-                const upcomingExamsList = exams.filter(e => e.classId === user.classId && new Date(e.scheduledDate) > new Date());
-                const studentAttendance = attendance.filter(a => a.studentId === user.id);
-                const presentRecords = studentAttendance.filter(a => a.status === 'present').length;
-                const attendanceRate = studentAttendance.length > 0 ? (presentRecords / studentAttendance.length * 100).toFixed(1) : 100;
+                // একসাথে একাধিক API কল করা হচ্ছে
+                const [classesRes, examsRes, attendanceRes, invoicesRes] = await Promise.all([
+                    apiClient.get('/classes'),
+                    apiClient.get('/exams'),
+                    apiClient.get('/attendance'),
+                    apiClient.get('/invoices') // নিজের ইনভয়েসগুলো লোড করা হচ্ছে
+                ]);
 
+                // Attendance Calculation
+                const presentRecords = attendanceRes.data.filter(a => a.status === 'present').length;
+                const attendanceRate = attendanceRes.data.length > 0 ? (presentRecords / attendanceRes.data.length * 100).toFixed(1) : 100;
+
+                // Pending Fees Calculation
+                const pendingInvoices = invoicesRes.data.filter(inv => inv.status !== 'paid');
+                const pendingFees = pendingInvoices.reduce((sum, inv) => {
+                    const totalPaid = (inv.payments || []).reduce((paySum, p) => paySum + p.amountPaid, 0);
+                    return sum + (inv.amount - totalPaid);
+                }, 0);
+                
                 setStats({
-                    enrolledClasses: studentClass ? 1 : 0,
-                    upcomingExams: upcomingExamsList.length,
+                    enrolledClasses: classesRes.data.length,
+                    upcomingExams: examsRes.data.filter(e => new Date(e.scheduledDate) > new Date()).length,
                     pendingAssignments: 2, // Mock data
-                    attendanceRate: parseFloat(attendanceRate)
+                    attendanceRate: parseFloat(attendanceRate),
+                    pendingFees: pendingFees // <-- সেট করা হচ্ছে
                 });
-                setUpcomingExams(upcomingExamsList.slice(0, 3));
+
+                setUpcomingExams(examsRes.data.filter(e => new Date(e.scheduledDate) > new Date()).slice(0, 3));
+
             } catch (error) {
-                console.error('Error loading dashboard data:', error);
+                console.error('Error loading student dashboard data:', error);
             } finally {
                 setLoading(false);
             }
         };
 
-        if (user) loadDashboardData();
+        loadDashboardData();
     }, [user]);
 
     const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } };
     const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 30 } } };
 
-    const StatCard = ({ title, value, icon: Icon, color }) => (
-        <motion.div variants={itemVariants} className={`relative overflow-hidden rounded-2xl p-6 ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg`}>
-            <div className={`absolute top-0 right-0 w-32 h-32 rounded-full opacity-10 ${color}`} />
-            <div className="relative z-10 flex items-start justify-between">
-                <div>
-                    <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'} mb-1`}>{title}</p>
-                    <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value}</p>
-                </div>
-                <div className={`p-3 rounded-xl ${color} bg-opacity-10`}><Icon className={`w-6 h-6 ${color}`} /></div>
+    const StatCard = ({ title, value, icon: Icon, color, onClick }) => (
+        <motion.div variants={itemVariants} onClick={onClick} className={`relative overflow-hidden rounded-2xl p-6 ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg ${onClick ? 'cursor-pointer' : ''}`}>
+            <div className={`absolute -top-4 -right-4 w-24 h-24 rounded-full opacity-10 ${color}`} />
+            <div className="relative z-10">
+                <div className={`p-3 rounded-xl ${color} bg-opacity-10 w-fit mb-4`}><Icon className={`w-6 h-6 ${color}`} /></div>
+                <p className={`text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'} mb-1`}>{title}</p>
+                <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value}</p>
             </div>
         </motion.div>
     );
@@ -76,11 +94,12 @@ const StudentDashboard = () => {
                         <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Welcome back, {user?.name}!</p>
                     </motion.div>
 
-                    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <StatCard title="Enrolled Classes" value={stats.enrolledClasses} icon={BookOpen} color="text-blue-500" />
-                        <StatCard title="Upcoming Exams" value={stats.upcomingExams} icon={FileText} color="text-purple-500" />
-                        <StatCard title="Pending Tasks" value={stats.pendingAssignments} icon={Clock} color="text-orange-500" />
-                        <StatCard title="Attendance Rate" value={`${stats.attendanceRate}%`} icon={TrendingUp} color="text-green-500" />
+                    <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                        <StatCard title="Enrolled Classes" value={stats.enrolledClasses} icon={BookOpen} color="text-blue-500" onClick={() => navigate('/student/classes')} />
+                        <StatCard title="Upcoming Exams" value={stats.upcomingExams} icon={FileText} color="text-purple-500" onClick={() => navigate('/student/exams')} />
+                        <StatCard title="Pending Fees" value={`$${stats.pendingFees.toFixed(2)}`} icon={stats.pendingFees > 0 ? AlertCircle : DollarSign} color={stats.pendingFees > 0 ? "text-red-500" : "text-green-500"} onClick={() => navigate('/student/finance')} />
+                        <StatCard title="Attendance" value={`${stats.attendanceRate}%`} icon={TrendingUp} color="text-green-500" onClick={() => navigate('/student/attendance')} />
+                        <StatCard title="Assignments" value={stats.pendingAssignments} icon={Clock} color="text-orange-500" onClick={() => navigate('/student/assignments')} />
                     </motion.div>
 
                     <motion.div variants={itemVariants} initial="hidden" animate="visible" className={`p-6 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg`}>
