@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DollarSign, Search, Plus, CreditCard, CheckCircle, AlertCircle, X, TrendingUp, Users } from 'lucide-react';
+import { DollarSign, Search, Plus, CreditCard, CheckCircle, AlertCircle, X, Users } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import Sidebar from '../../components/Sidebar';
 import { useTheme } from '../../contexts/ThemeContext';
-import { storage } from '../../utils/storage';
+import apiClient from '../../api/axios'; // apiClient ইম্পোর্ট করা হয়েছে
 
 const Payments = () => {
     const { isDark, currentTheme } = useTheme();
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [allStudents, setAllStudents] = useState([]); // <-- সব ছাত্রদের তালিকা রাখার জন্য নতুন স্টেট
     const [studentsWithFees, setStudentsWithFees] = useState([]);
     const [filteredStudents, setFilteredStudents] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -18,40 +19,61 @@ const Payments = () => {
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [paymentData, setPaymentData] = useState({ amount: '', paymentMethod: 'Credit Card', transactionId: '', notes: '' });
     const [generateFeeData, setGenerateFeeData] = useState({ studentId: '', amount: '', description: '', dueDate: '' });
+    const [loading, setLoading] = useState(true); // লোডিং স্টেট যোগ করা হয়েছে
 
+    // ডেটা লোড করার জন্য useEffect
     useEffect(() => {
         loadData();
     }, []);
 
+    // ফিল্টার করার জন্য useEffect
     useEffect(() => {
         filterData();
     }, [studentsWithFees, searchTerm, statusFilter]);
 
-    const loadData = () => {
-        const users = storage.get('users') || [];
-        const fees = storage.get('fees') || [];
-        const students = users.filter(u => u.role === 'student');
+    const loadData = async () => {
+        setLoading(true);
+        try {
+            // একসাথে ছাত্র এবং ইনভয়েস উভয়ের ডেটা লোড করা হচ্ছে
+            const [studentsRes, invoicesRes] = await Promise.all([
+                apiClient.get('/users?role=student'),
+                apiClient.get('/invoices') 
+            ]);
 
-        const studentFeeDetails = students.map(student => {
-            const studentFees = fees.filter(f => f.studentId === student.id);
-            const totalDue = studentFees.reduce((sum, f) => sum + f.amount, 0);
-            const totalPaid = studentFees.filter(f => f.status === 'paid').reduce((sum, f) => sum + f.amount, 0) + 
-                              studentFees.filter(f => f.status === 'partial').reduce((sum, f) => sum + (f.amountPaid || 0), 0);
-            const balance = totalDue - totalPaid;
-            
-            let status = 'Pending';
-            if (balance <= 0 && totalDue > 0) status = 'Paid';
-            else if (totalPaid > 0 && balance > 0) status = 'Partial';
-            else if (totalDue === 0) status = 'No Dues';
+            const students = studentsRes.data;
+            const invoices = invoicesRes.data;
+            setAllStudents(students); // <-- সব ছাত্রদের তালিকা সেভ করা হচ্ছে
 
-            // Check for overdue
-            const isOverdue = studentFees.some(f => f.status !== 'paid' && new Date(f.dueDate) < new Date());
-            if (isOverdue && status !== 'Paid') status = 'Overdue';
+            const studentFeeDetails = students.map(student => {
+                const studentInvoices = invoices.filter(inv => inv.studentId === student.id);
+                const totalDue = studentInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+                
+                let totalPaid = 0;
+                studentInvoices.forEach(inv => {
+                    totalPaid += inv.payments.reduce((sum, p) => sum + p.amountPaid, 0);
+                });
 
-            return { ...student, totalDue, totalPaid, balance, status };
-        });
+                const balance = totalDue - totalPaid;
+                
+                let status = 'No Dues';
+                if (balance > 0) {
+                    const isOverdue = studentInvoices.some(inv => inv.status !== 'paid' && new Date(inv.dueDate) < new Date());
+                    if (isOverdue) status = 'Overdue';
+                    else if (totalPaid > 0) status = 'Partial';
+                    else status = 'Pending';
+                } else if (totalDue > 0) {
+                    status = 'Paid';
+                }
 
-        setStudentsWithFees(studentFeeDetails);
+                return { ...student, totalDue, totalPaid, balance, status };
+            });
+
+            setStudentsWithFees(studentFeeDetails);
+        } catch (error) {
+            console.error("Failed to load financial data:", error);
+        } finally {
+            setLoading(false);
+        }
     };
     
     const filterData = () => {
@@ -65,57 +87,49 @@ const Payments = () => {
         setFilteredStudents(filtered);
     };
 
-    const handleRecordPayment = (e) => {
+    const handleRecordPayment = async (e) => {
         e.preventDefault();
-        const allFees = storage.get('fees');
-        const studentPendingFees = allFees.filter(f => f.studentId === selectedStudent.id && f.status !== 'paid').sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
-        
-        let paymentAmount = parseFloat(paymentData.amount);
-        
-        for (const fee of studentPendingFees) {
-            if (paymentAmount <= 0) break;
+        try {
+            // Note: This logic assumes you find the correct invoice to apply payment to.
+            // A more robust system would let the accountant select which invoice to pay.
+            const invoicesRes = await apiClient.get(`/invoices?studentId=${selectedStudent.id}`);
+            const unpaidInvoice = invoicesRes.data.find(inv => inv.status !== 'paid');
 
-            const dueOnThisFee = fee.balanceDue || fee.amount;
-            const paidOnThisFee = Math.min(paymentAmount, dueOnThisFee);
-            
-            fee.amountPaid = (fee.amountPaid || 0) + paidOnThisFee;
-            fee.balanceDue = fee.amount - fee.amountPaid;
-            fee.status = fee.balanceDue <= 0 ? 'paid' : 'partial';
-            fee.paidDate = new Date().toISOString().split('T')[0];
-            fee.paymentMethod = paymentData.paymentMethod;
-            fee.transactionId = paymentData.transactionId || `TXN${Date.now()}`;
-            
-            paymentAmount -= paidOnThisFee;
+            if (!unpaidInvoice) {
+                alert("No outstanding invoices found for this student.");
+                return;
+            }
+
+            await apiClient.post('/payments', {
+                invoiceId: unpaidInvoice.id,
+                amountPaid: parseFloat(paymentData.amount),
+                paymentMethod: paymentData.paymentMethod,
+                transactionId: paymentData.transactionId
+            });
+
+            await loadData();
+            setShowPaymentModal(false);
+        } catch (error) {
+            console.error("Failed to record payment:", error);
+            alert("Could not record payment.");
         }
-
-        const updatedFees = allFees.map(f => {
-            const updatedFee = studentPendingFees.find(sf => sf.id === f.id);
-            return updatedFee || f;
-        });
-
-        storage.set('fees', updatedFees);
-        loadData();
-        setShowPaymentModal(false);
     };
 
-    const handleGenerateFee = (e) => {
+    const handleGenerateFee = async (e) => {
         e.preventDefault();
-        const allFees = storage.get('fees');
-        const student = storage.get('users').find(u => u.id === generateFeeData.studentId);
-        
-        const newFee = {
-            id: `fee_${Date.now()}`,
-            studentId: generateFeeData.studentId,
-            studentName: student.name,
-            amount: parseFloat(generateFeeData.amount),
-            description: generateFeeData.description,
-            dueDate: generateFeeData.dueDate,
-            status: 'pending',
-            createdAt: new Date().toISOString()
-        };
-        storage.set('fees', [newFee, ...allFees]);
-        loadData();
-        setShowGenerateFeeModal(false);
+        try {
+            await apiClient.post('/invoices', {
+                studentId: generateFeeData.studentId,
+                amount: parseFloat(generateFeeData.amount),
+                description: generateFeeData.description,
+                dueDate: generateFeeData.dueDate
+            });
+            await loadData();
+            setShowGenerateFeeModal(false);
+        } catch(error) {
+            console.error("Failed to generate fee:", error);
+            alert("Could not generate fee.");
+        }
     };
     
     const getStatusBadge = (status) => {
@@ -147,10 +161,6 @@ const Payments = () => {
                         </div>
                     </motion.div>
 
-                    {/* Stats */}
-                    {/* ... (Stat cards can be added here) */}
-
-                    {/* Table */}
                     <div className={`p-4 rounded-2xl ${isDark ? 'glass-card-dark' : 'glass-card-light'} shadow-premium-lg`}>
                         <div className="flex flex-col md:flex-row gap-4 p-4">
                             <div className="flex-1 relative">
@@ -158,11 +168,7 @@ const Payments = () => {
                                 <input type="text" placeholder="Search student..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className={`w-full pl-10 pr-4 py-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`} />
                             </div>
                             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={`w-full md:w-auto p-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`}>
-                                <option value="all">All Status</option>
-                                <option value="paid">Paid</option>
-                                <option value="pending">Pending</option>
-                                <option value="partial">Partial</option>
-                                <option value="overdue">Overdue</option>
+                                <option value="all">All Status</option><option value="paid">Paid</option><option value="pending">Pending</option><option value="partial">Partial</option><option value="overdue">Overdue</option>
                             </select>
                         </div>
 
@@ -178,7 +184,9 @@ const Payments = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredStudents.map(student => (
+                                    {loading ? (
+                                        <tr><td colSpan="5" className="py-16 text-center"><div className="w-8 h-8 mx-auto border-b-2 border-blue-500 rounded-full animate-spin"></div></td></tr>
+                                    ) : filteredStudents.map(student => (
                                         <tr key={student.id} className={`border-b ${isDark ? 'border-gray-800' : 'border-gray-100'} hover:${isDark ? 'bg-gray-800/50' : 'bg-gray-50/50'}`}>
                                             <td className="px-6 py-4"><div className="flex items-center gap-3"><img src={student.avatar} alt={student.name} className="w-10 h-10 rounded-full"/><div><div className="font-semibold">{student.name}</div><div className="text-xs text-gray-400">{student.email}</div></div></div></td>
                                             <td className="px-6 py-4 font-mono">${student.totalDue.toFixed(2)}</td>
@@ -198,7 +206,6 @@ const Payments = () => {
                 </div>
             </main>
 
-            {/* Modals */}
             <AnimatePresence>
                 {showPaymentModal && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -221,7 +228,7 @@ const Payments = () => {
                             <div className="space-y-4">
                                 <select required value={generateFeeData.studentId} onChange={e => setGenerateFeeData({...generateFeeData, studentId: e.target.value})} className={`w-full p-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`}>
                                     <option value="">Select Student</option>
-                                    {studentsWithFees.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    {allStudents.map(s => <option key={s.id} value={s.id}>{s.name} ({s.email})</option>)}
                                 </select>
                                 <input required type="text" value={generateFeeData.description} onChange={e => setGenerateFeeData({...generateFeeData, description: e.target.value})} placeholder="Fee Description (e.g., Monthly Tuition)" className={`w-full p-3 rounded-xl ${isDark ? 'input-glass-dark' : 'input-glass'}`}/>
                                 <div className="grid grid-cols-2 gap-4">
